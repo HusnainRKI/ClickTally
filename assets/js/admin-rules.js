@@ -82,13 +82,77 @@ function closeEventModal() {
 }
 
 function openDOMPicker() {
-    // TODO: Implement DOM picker functionality
-    alert('DOM picker functionality will be implemented in a future update.');
+    // Basic DOM picker implementation
+    // In a real implementation, this would open a modal with an iframe
+    
+    const selectorValueField = document.getElementById('selector-value');
+    if (!selectorValueField) return;
+    
+    // For now, provide a simple prompt-based approach
+    const selector = prompt('Enter a CSS selector or element ID/class:\n\nExamples:\n- #my-button (for ID)\n- .my-class (for class)\n- button.primary (for CSS selector)\n- //button[@id="submit"] (for XPath)');
+    
+    if (selector && selector.trim()) {
+        selectorValueField.value = selector.trim();
+        
+        // Try to determine selector type automatically
+        const selectorTypeField = document.getElementById('selector-type');
+        if (selectorTypeField) {
+            if (selector.startsWith('#')) {
+                selectorTypeField.value = 'id';
+                selectorValueField.value = selector.substring(1); // Remove the #
+            } else if (selector.startsWith('.') && !selector.includes(' ')) {
+                selectorTypeField.value = 'class';
+                selectorValueField.value = selector.substring(1); // Remove the .
+            } else if (selector.startsWith('//')) {
+                selectorTypeField.value = 'xpath';
+            } else if (selector.includes('[data-')) {
+                selectorTypeField.value = 'data';
+            } else {
+                selectorTypeField.value = 'css';
+            }
+        }
+        
+        // Auto-generate event name if empty
+        const eventNameField = document.getElementById('event-name');
+        if (eventNameField && !eventNameField.value.trim()) {
+            let autoName = selector;
+            if (selector.startsWith('#')) {
+                autoName = selector.substring(1) + ' Click';
+            } else if (selector.startsWith('.')) {
+                autoName = selector.substring(1).replace(/-/g, ' ') + ' Click';
+            } else {
+                autoName = 'Element Click';
+            }
+            eventNameField.value = autoName.charAt(0).toUpperCase() + autoName.slice(1);
+        }
+    }
 }
 
 function loadEventData(eventId) {
-    // TODO: Load event data via AJAX
-    console.log('Loading event data for ID:', eventId);
+    // For now, we'll implement a simple approach that populates the form
+    // In a real implementation, this would fetch data via AJAX
+    
+    // Show loading in modal
+    const modal = document.getElementById('event-modal');
+    if (modal) {
+        const form = document.getElementById('event-form');
+        if (form) {
+            // Set the event ID
+            const eventIdField = document.getElementById('event-id');
+            if (eventIdField) {
+                eventIdField.value = eventId;
+            }
+            
+            // TODO: Fetch actual event data from server
+            // For now, just log that we're loading
+            console.log('Loading event data for ID:', eventId);
+            
+            // In a future implementation, we would:
+            // 1. Make an AJAX request to get the event data
+            // 2. Populate the form fields with the returned data
+            // 3. Handle any errors appropriately
+        }
+    }
 }
 
 function editEvent(eventId) {
@@ -97,13 +161,136 @@ function editEvent(eventId) {
 
 function deleteEvent(eventId) {
     if (confirm(clickTallyAdmin.strings.confirmDelete)) {
-        // TODO: Implement event deletion
-        console.log('Deleting event ID:', eventId);
+        // Show loading state
+        const deleteBtn = document.querySelector(`button[data-rule-id="${eventId}"][data-action="delete"]`);
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = 'Deleting...';
+        }
+        
+        // Submit deletion via REST API
+        const url = clickTallyAdmin.apiUrl + 'rules/manage';
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': clickTallyAdmin.nonce
+            },
+            body: JSON.stringify({
+                action: 'delete',
+                rule_id: eventId
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                alert(clickTallyAdmin.strings.eventDeleted);
+                
+                // Refresh the page to show updated list
+                location.reload();
+            } else {
+                throw new Error(data.message || 'Unknown error');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting event:', error);
+            alert(clickTallyAdmin.strings.errorGeneral);
+        })
+        .finally(() => {
+            // Restore button state
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = 'Delete';
+            }
+        });
     }
 }
 
 function handleEventFormSubmit(e) {
     e.preventDefault();
-    // TODO: Implement form submission
-    console.log('Event form submitted');
+    
+    const form = document.getElementById('event-form');
+    if (!form) return;
+    
+    // Validate form
+    const selectorType = form.querySelector('#selector-type').value;
+    const selectorValue = form.querySelector('#selector-value').value.trim();
+    const eventName = form.querySelector('#event-name').value.trim();
+    
+    if (!selectorType || !selectorValue || !eventName) {
+        alert('Please fill in all required fields.');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+    
+    // Prepare data
+    const eventId = form.querySelector('#event-id').value;
+    const formData = new FormData(form);
+    const eventData = {
+        selector_type: selectorType,
+        selector_value: selectorValue,
+        event_name: eventName,
+        event_type: formData.get('event_type') || 'click',
+        label_template: formData.get('label_template') || '',
+        throttle_ms: parseInt(formData.get('throttle_ms')) || 0,
+        once_per_view: formData.get('once_per_view') ? true : false
+    };
+    
+    // Submit via REST API
+    const url = clickTallyAdmin.apiUrl + 'rules/manage';
+    const isUpdate = eventId && eventId !== '';
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-WP-Nonce': clickTallyAdmin.nonce
+        },
+        body: JSON.stringify({
+            action: isUpdate ? 'update' : 'create',
+            rule_id: isUpdate ? eventId : undefined,
+            ...eventData
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            alert(isUpdate ? clickTallyAdmin.strings.eventUpdated : clickTallyAdmin.strings.eventAdded);
+            
+            // Close modal
+            closeEventModal();
+            
+            // Refresh the page to show updated list
+            location.reload();
+        } else {
+            throw new Error(data.message || 'Unknown error');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving event:', error);
+        alert(clickTallyAdmin.strings.errorGeneral);
+    })
+    .finally(() => {
+        // Restore button state
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    });
 }

@@ -251,14 +251,14 @@ class ClickTally {
         // Only load on plugins page
         if ($pagenow === 'plugins.php') {
             wp_enqueue_script(
-                'clicktally-deactivation',
+                'clicktally-element-event-tracker-deactivation-script',
                 CLICKTALLY_PLUGIN_URL . 'assets/js/deactivation.js',
                 array('jquery'),
                 CLICKTALLY_VERSION,
                 true
             );
             
-            wp_localize_script('clicktally-deactivation', 'clickTallyDeactivation', array(
+            wp_localize_script('clicktally-element-event-tracker-deactivation-script', 'clickTallyElementEventTrackerDeactivation', array(
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('clicktally_deactivation'),
                 'pluginSlug' => CLICKTALLY_PLUGIN_BASENAME,
@@ -274,61 +274,12 @@ class ClickTally {
                 )
             ));
             
-            wp_enqueue_style('clicktally-deactivation-css');
-            wp_add_inline_style('clicktally-deactivation-css', '
-                .clicktally-deactivation-modal {
-                    display: none;
-                    position: fixed;
-                    z-index: 999999;
-                    left: 0;
-                    top: 0;
-                    width: 100%;
-                    height: 100%;
-                    background-color: rgba(0,0,0,0.5);
-                }
-                .clicktally-deactivation-content {
-                    background-color: #fff;
-                    margin: 10% auto;
-                    padding: 20px;
-                    border-radius: 5px;
-                    width: 500px;
-                    max-width: 90%;
-                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                }
-                .clicktally-deactivation-header {
-                    border-bottom: 1px solid #ddd;
-                    padding-bottom: 10px;
-                    margin-bottom: 20px;
-                }
-                .clicktally-deactivation-options {
-                    margin: 20px 0;
-                }
-                .clicktally-deactivation-option {
-                    margin: 10px 0;
-                    padding: 10px;
-                    border: 1px solid #ddd;
-                    border-radius: 3px;
-                    cursor: pointer;
-                    transition: background-color 0.2s;
-                }
-                .clicktally-deactivation-option:hover {
-                    background-color: #f9f9f9;
-                }
-                .clicktally-deactivation-option.selected {
-                    background-color: #e7f3ff;
-                    border-color: #007cba;
-                }
-                .clicktally-deactivation-footer {
-                    border-top: 1px solid #ddd;
-                    padding-top: 20px;
-                    text-align: right;
-                }
-                .clicktally-deactivation-warning {
-                    color: #d63638;
-                    font-weight: 600;
-                    margin: 10px 0;
-                }
-            ');
+            wp_enqueue_style(
+                'clicktally-element-event-tracker-deactivation-style',
+                CLICKTALLY_PLUGIN_URL . 'assets/css/deactivation.css',
+                array(),
+                CLICKTALLY_VERSION
+            );
         }
     }
     
