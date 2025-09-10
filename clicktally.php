@@ -274,8 +274,8 @@ class ClickTally {
                 )
             ));
             
-            // Add inline CSS for the modal
-            wp_add_inline_style('admin-menu', '
+            wp_enqueue_style('clicktally-deactivation-css');
+            wp_add_inline_style('clicktally-deactivation-css', '
                 .clicktally-deactivation-modal {
                     display: none;
                     position: fixed;
