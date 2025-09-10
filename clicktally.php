@@ -113,13 +113,20 @@ class ClickTally {
      * Add admin menu
      */
     public function admin_menu() {
-        // Initialize new dashboard menu with long prefixes
+        // Initialize new dashboard menu with long prefixes for users with new capability
         if (current_user_can('manage_clicktally_element_event_tracker')) {
             Clicktally_Element_Event_Tracker_Admin_Menu::init();
         }
-        // Keep backward compatibility for old capability
+        // Keep backward compatibility for old capability (fallback)
         elseif (current_user_can('manage_clicktally')) {
-            ClickTally_Admin::init();
+            // If they have old capability but not new one, grant them the new one
+            $user = wp_get_current_user();
+            if ($user && $user->ID) {
+                $user->add_cap('manage_clicktally_element_event_tracker');
+            }
+            
+            // Use the new admin menu
+            Clicktally_Element_Event_Tracker_Admin_Menu::init();
         }
     }
     
@@ -142,7 +149,7 @@ class ClickTally {
      */
     public function enqueue_tracker() {
         wp_enqueue_script(
-            'clicktally-tracker',
+            'clicktally-element-event-tracker-frontend-script',
             CLICKTALLY_PLUGIN_URL . 'assets/js/tracker.js',
             array(),
             CLICKTALLY_VERSION,
@@ -150,9 +157,9 @@ class ClickTally {
         );
         
         // Localize script with configuration
-        wp_localize_script('clicktally-tracker', 'clickTallyConfig', array(
+        wp_localize_script('clicktally-element-event-tracker-frontend-script', 'clickTallyConfig', array(
             'apiUrl' => rest_url('clicktally/v1/'),
-            'nonce' => wp_create_nonce('clicktally_track'),
+            'nonce' => wp_create_nonce('clicktally_element_event_tracker_track'),
             'rulesVersion' => get_option('ct_rules_version', 1),
             'respectDNT' => $this->get_setting('respect_dnt', true),
             'sessionTracking' => $this->get_setting('session_tracking', false),

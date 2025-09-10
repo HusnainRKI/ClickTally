@@ -116,6 +116,10 @@ ClickTally collects and processes the following data for analytics purposes:
 
 All personal data is hashed and cannot be used to identify individual users. No cookies are stored by default. The plugin respects Do Not Track headers and provides data export/erasure functionality for privacy compliance.
 
+== External Services ==
+
+ClickTally does not connect to any external services by default. All data processing and storage occurs locally on your WordPress installation. No data is transmitted to third-party services, CDNs, or external analytics platforms.
+
 == Support ==
 
 For support, feature requests, and bug reports, please visit the plugin's GitHub repository or contact the development team through the WordPress.org support forums.

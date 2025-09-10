@@ -86,32 +86,62 @@ class ClickTally_Admin {
         }
         
         wp_enqueue_style(
-            'clicktally-admin',
+            'clicktally-element-event-tracker-admin-legacy-style',
             CLICKTALLY_PLUGIN_URL . 'assets/css/admin.css',
             array(),
             CLICKTALLY_VERSION
         );
         
-        wp_enqueue_script(
-            'clicktally-admin',
-            CLICKTALLY_PLUGIN_URL . 'assets/js/admin-picker.js',
-            array('jquery'),
-            CLICKTALLY_VERSION,
-            true
-        );
-        
-        wp_localize_script('clicktally-admin', 'clickTallyAdmin', array(
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('clicktally_admin'),
-            'apiUrl' => rest_url('clicktally/v1/'),
-            'strings' => array(
-                'confirmDelete' => __('Are you sure you want to delete this rule?', 'clicktally'),
-                'errorGeneral' => __('An error occurred. Please try again.', 'clicktally'),
-                'ruleAdded' => __('Rule added successfully.', 'clicktally'),
-                'ruleUpdated' => __('Rule updated successfully.', 'clicktally'),
-                'ruleDeleted' => __('Rule deleted successfully.', 'clicktally'),
-            )
-        ));
+        // Load appropriate JS based on the page
+        if (strpos($hook, 'clicktally-rules') !== false) {
+            // Rules page
+            wp_enqueue_script(
+                'clicktally-element-event-tracker-admin-rules-script',
+                CLICKTALLY_PLUGIN_URL . 'assets/js/admin-rules.js',
+                array('jquery'),
+                CLICKTALLY_VERSION,
+                true
+            );
+            wp_localize_script('clicktally-element-event-tracker-admin-rules-script', 'clickTallyAdmin', array(
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('clicktally_admin'),
+                'apiUrl' => rest_url('clicktally/v1/'),
+                'strings' => array(
+                    'confirmDelete' => __('Are you sure you want to delete this rule?', 'clicktally'),
+                    'errorGeneral' => __('An error occurred. Please try again.', 'clicktally'),
+                    'ruleAdded' => __('Rule added successfully.', 'clicktally'),
+                    'ruleUpdated' => __('Rule updated successfully.', 'clicktally'),
+                    'ruleDeleted' => __('Rule deleted successfully.', 'clicktally'),
+                )
+            ));
+        } elseif (strpos($hook, 'clicktally-test') !== false) {
+            // Test page
+            wp_enqueue_script(
+                'clicktally-element-event-tracker-admin-test-script',
+                CLICKTALLY_PLUGIN_URL . 'assets/js/admin-test.js',
+                array(),
+                CLICKTALLY_VERSION,
+                true
+            );
+        } else {
+            // Overview/main page
+            wp_enqueue_script(
+                'clicktally-element-event-tracker-admin-legacy-script',
+                CLICKTALLY_PLUGIN_URL . 'assets/js/admin-legacy.js',
+                array('jquery'),
+                CLICKTALLY_VERSION,
+                true
+            );
+            wp_localize_script('clicktally-element-event-tracker-admin-legacy-script', 'clickTallyAdmin', array(
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('clicktally_admin'),
+                'apiUrl' => rest_url('clicktally/v1/'),
+                'strings' => array(
+                    'confirmDelete' => __('Are you sure you want to delete this rule?', 'clicktally'),
+                    'errorGeneral' => __('An error occurred. Please try again.', 'clicktally'),
+                )
+            ));
+        }
     }
     
     /**
@@ -186,75 +216,12 @@ class ClickTally_Admin {
                 </div>
             </div>
             
-            <script>
-                // Auto-refresh data when filters change
-                document.addEventListener('DOMContentLoaded', function() {
-                    ['ct-date-range', 'ct-device', 'ct-user-type'].forEach(function(id) {
-                        document.getElementById(id).addEventListener('change', function() {
-                            refreshDashboardData();
-                        });
-                    });
-                });
-                
-                function refreshDashboardData() {
-                    var range = document.getElementById('ct-date-range').value;
-                    var device = document.getElementById('ct-device').value;
-                    var userType = document.getElementById('ct-user-type').value;
-                    
-                    // Show loading state
-                    document.querySelectorAll('.clicktally-stat-number, .clicktally-stat-text').forEach(function(el) {
-                        el.style.opacity = '0.5';
-                    });
-                    
-                    // Make AJAX request
-                    jQuery.post(ajaxurl, {
-                        action: 'clicktally_get_stats',
-                        nonce: clickTallyAdmin.nonce,
-                        range: range,
-                        device: device,
-                        user_type: userType
-                    }, function(response) {
-                        if (response.success) {
-                            updateDashboardStats(response.data);
-                        }
-                    }).always(function() {
-                        // Remove loading state
-                        document.querySelectorAll('.clicktally-stat-number, .clicktally-stat-text').forEach(function(el) {
-                            el.style.opacity = '1';
-                        });
-                    });
-                }
-                
-                function updateDashboardStats(data) {
-                    // Update summary cards
-                    document.querySelector('.clicktally-summary-cards .clicktally-stat-number').textContent = 
-                        new Intl.NumberFormat().format(data.total_clicks);
-                    
-                    // Update tables
-                    if (data.top_elements_html) {
-                        document.getElementById('ct-top-elements-table').innerHTML = data.top_elements_html;
-                    }
-                    if (data.top_pages_html) {
-                        document.getElementById('ct-top-pages-table').innerHTML = data.top_pages_html;
-                    }
-                }
-                
-                function clickTallyExportData() {
-                    var range = document.getElementById('ct-date-range').value;
-                    var device = document.getElementById('ct-device').value;
-                    var userType = document.getElementById('ct-user-type').value;
-                    
-                    var params = new URLSearchParams({
-                        action: 'clicktally_export_data',
-                        nonce: clickTallyAdmin.nonce,
-                        range: range,
-                        device: device,
-                        user_type: userType
-                    });
-                    
-                    window.location.href = ajaxurl + '?' + params.toString();
-                }
-            </script>
+            <!-- Privacy Notice (if tracking disabled) -->
+            <?php if (!self::clicktally_element_event_tracker_is_tracking_enabled()): ?>
+            <div class="notice notice-info">
+                <p><?php echo esc_html__('Tracking is currently disabled in settings. Enable tracking to see data.', 'clicktally'); ?></p>
+            </div>
+            <?php endif; ?>
         </div>
         <?php
     }
@@ -270,7 +237,7 @@ class ClickTally_Admin {
             
             <div class="clicktally-rules-page">
                 <div class="clicktally-rules-header">
-                    <button type="button" class="button button-primary" onclick="openRuleModal()"><?php _e('Add Rule', 'clicktally'); ?></button>
+                    <button type="button" class="button button-primary" data-action="add-rule"><?php _e('Add Rule', 'clicktally'); ?></button>
                 </div>
                 
                 <div class="clicktally-rules-list">
@@ -304,9 +271,9 @@ class ClickTally_Admin {
                                             </span>
                                         </td>
                                         <td>
-                                            <button type="button" class="button button-small" onclick="editRule(<?php echo esc_attr($rule['id']); ?>)"><?php _e('Edit', 'clicktally'); ?></button>
+                                            <button type="button" class="button button-small" data-rule-id="<?php echo esc_attr($rule['id']); ?>" data-action="edit"><?php _e('Edit', 'clicktally'); ?></button>
                                             <?php if (!$rule['auto_rule']): ?>
-                                                <button type="button" class="button button-small button-link-delete" onclick="deleteRule(<?php echo esc_attr($rule['id']); ?>)"><?php _e('Delete', 'clicktally'); ?></button>
+                                                <button type="button" class="button button-small button-link-delete" data-rule-id="<?php echo esc_attr($rule['id']); ?>" data-action="delete"><?php _e('Delete', 'clicktally'); ?></button>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
@@ -322,7 +289,7 @@ class ClickTally_Admin {
                 <div class="clicktally-modal-content">
                     <div class="clicktally-modal-header">
                         <h2><?php _e('Add/Edit Tracking Rule', 'clicktally'); ?></h2>
-                        <button type="button" class="clicktally-modal-close" onclick="closeRuleModal()">&times;</button>
+                        <button type="button" class="clicktally-modal-close" data-action="close-modal">&times;</button>
                     </div>
                     <div class="clicktally-modal-body">
                         <form id="rule-form">
@@ -344,7 +311,7 @@ class ClickTally_Admin {
                                 <div class="clicktally-input-group">
                                     <input type="text" id="selector-value" name="selector_value" required 
                                            placeholder="<?php _e('e.g., #signup-cta or .btn-primary', 'clicktally'); ?>">
-                                    <button type="button" class="button" onclick="openDOMPicker()"><?php _e('Add from Selected', 'clicktally'); ?></button>
+                                    <button type="button" class="button" data-action="dom-picker"><?php _e('Add from Selected', 'clicktally'); ?></button>
                                 </div>
                             </div>
                             
@@ -388,56 +355,13 @@ class ClickTally_Admin {
                             </details>
                             
                             <div class="clicktally-modal-footer">
-                                <button type="button" class="button" onclick="closeRuleModal()"><?php _e('Cancel', 'clicktally'); ?></button>
+                                <button type="button" class="button" data-action="close-modal"><?php _e('Cancel', 'clicktally'); ?></button>
                                 <button type="submit" class="button button-primary"><?php _e('Save Rule', 'clicktally'); ?></button>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
-            
-            <script>
-                function openRuleModal(ruleId) {
-                    document.getElementById('rule-modal').style.display = 'block';
-                    if (ruleId) {
-                        // Load rule data for editing
-                        loadRuleData(ruleId);
-                    } else {
-                        // Reset form for new rule
-                        document.getElementById('rule-form').reset();
-                        document.getElementById('rule-id').value = '';
-                    }
-                }
-                
-                function closeRuleModal() {
-                    document.getElementById('rule-modal').style.display = 'none';
-                }
-                
-                function openDOMPicker() {
-                    // TODO: Implement DOM picker functionality
-                    alert('DOM picker functionality will be implemented in a future update.');
-                }
-                
-                function loadRuleData(ruleId) {
-                    // TODO: Load rule data via AJAX
-                }
-                
-                function editRule(ruleId) {
-                    openRuleModal(ruleId);
-                }
-                
-                function deleteRule(ruleId) {
-                    if (confirm(clickTallyAdmin.strings.confirmDelete)) {
-                        // TODO: Implement rule deletion
-                    }
-                }
-                
-                // Handle form submission
-                document.getElementById('rule-form').addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    // TODO: Implement form submission
-                });
-            </script>
         </div>
         <?php
     }
@@ -455,7 +379,7 @@ class ClickTally_Admin {
                     <div class="clicktally-form-row">
                         <label for="test-url"><?php _e('Test URL', 'clicktally'); ?></label>
                         <input type="url" id="test-url" placeholder="<?php echo esc_attr(home_url()); ?>" style="width: 400px;">
-                        <button type="button" class="button" onclick="loadTestPage()"><?php _e('Load Page', 'clicktally'); ?></button>
+                        <button type="button" class="button" data-action="load-test-page"><?php _e('Load Page', 'clicktally'); ?></button>
                     </div>
                     <div class="clicktally-form-row">
                         <label>
@@ -475,13 +399,6 @@ class ClickTally_Admin {
                     </div>
                 </div>
             </div>
-            
-            <script>
-                function loadTestPage() {
-                    var url = document.getElementById('test-url').value || '<?php echo home_url(); ?>';
-                    document.getElementById('test-iframe').src = url;
-                }
-            </script>
         </div>
         <?php
     }
@@ -572,8 +489,15 @@ class ClickTally_Admin {
      * Save settings
      */
     private static function save_settings() {
-        if (!wp_verify_nonce($_POST['clicktally_settings_nonce'], 'clicktally_settings')) {
+        // Verify nonce
+        $nonce = sanitize_text_field(wp_unslash($_POST['clicktally_settings_nonce'] ?? ''));
+        if (!wp_verify_nonce($nonce, 'clicktally_settings')) {
             wp_die(__('Security check failed', 'clicktally'));
+        }
+        
+        // Check capabilities
+        if (!current_user_can('manage_clicktally_element_event_tracker') && !current_user_can('manage_clicktally')) {
+            wp_die(__('Insufficient permissions', 'clicktally'));
         }
         
         $settings = array(
@@ -756,15 +680,20 @@ class ClickTally_Admin {
      * AJAX handler for getting stats
      */
     public static function ajax_get_stats() {
-        check_ajax_referer('clicktally_admin', 'nonce');
-        
-        if (!current_user_can('manage_clicktally')) {
-            wp_die(-1);
+        // Verify nonce
+        $nonce = sanitize_text_field(wp_unslash($_POST['nonce'] ?? ''));
+        if (!wp_verify_nonce($nonce, 'clicktally_admin')) {
+            wp_die(__('Security check failed', 'clicktally'), 403);
         }
         
-        $range = sanitize_text_field($_POST['range'] ?? '7d');
-        $device = sanitize_text_field($_POST['device'] ?? 'all');
-        $user_type = sanitize_text_field($_POST['user_type'] ?? 'all');
+        // Check capabilities (new or old)
+        if (!current_user_can('manage_clicktally_element_event_tracker') && !current_user_can('manage_clicktally')) {
+            wp_die(__('Insufficient permissions', 'clicktally'), 403);
+        }
+        
+        $range = sanitize_text_field(wp_unslash($_POST['range'] ?? '7d'));
+        $device = sanitize_text_field(wp_unslash($_POST['device'] ?? 'all'));
+        $user_type = sanitize_text_field(wp_unslash($_POST['user_type'] ?? 'all'));
         
         $stats = self::get_dashboard_stats($range, $device, $user_type);
         
@@ -790,10 +719,15 @@ class ClickTally_Admin {
      * AJAX handler for managing rules
      */
     public static function ajax_manage_rule() {
-        check_ajax_referer('clicktally_admin', 'nonce');
+        // Verify nonce
+        $nonce = sanitize_text_field(wp_unslash($_POST['nonce'] ?? ''));
+        if (!wp_verify_nonce($nonce, 'clicktally_admin')) {
+            wp_die(__('Security check failed', 'clicktally'), 403);
+        }
         
-        if (!current_user_can('manage_clicktally')) {
-            wp_die(-1);
+        // Check capabilities (new or old)
+        if (!current_user_can('manage_clicktally_element_event_tracker') && !current_user_can('manage_clicktally')) {
+            wp_die(__('Insufficient permissions', 'clicktally'), 403);
         }
         
         // TODO: Implement rule management
@@ -804,13 +738,26 @@ class ClickTally_Admin {
      * AJAX handler for exporting data
      */
     public static function ajax_export_data() {
-        check_ajax_referer('clicktally_admin', 'nonce');
+        // Verify nonce
+        $nonce = sanitize_text_field(wp_unslash($_POST['nonce'] ?? ''));
+        if (!wp_verify_nonce($nonce, 'clicktally_admin')) {
+            wp_die(__('Security check failed', 'clicktally'), 403);
+        }
         
-        if (!current_user_can('manage_clicktally')) {
-            wp_die(-1);
+        // Check capabilities (new or old)
+        if (!current_user_can('manage_clicktally_element_event_tracker') && !current_user_can('manage_clicktally')) {
+            wp_die(__('Insufficient permissions', 'clicktally'), 403);
         }
         
         // TODO: Implement data export
         wp_send_json_success();
+    }
+    
+    /**
+     * Check if tracking is enabled
+     */
+    private static function clicktally_element_event_tracker_is_tracking_enabled() {
+        $settings = get_option('ct_settings', array());
+        return !isset($settings['disable_tracking']) || !$settings['disable_tracking'];
     }
 }
