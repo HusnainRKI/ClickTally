@@ -1,56 +1,55 @@
 /**
  * ClickTally Admin Event Rules JavaScript
- * For managing tracking events
+ * For managing tracking events with event delegation and proper error handling
  */
 
 document.addEventListener('DOMContentLoaded', function() {
     'use strict';
+    
+    // Use event delegation for better handling of dynamic content
+    setupEventDelegation();
     
     // Set up event form handling
     const eventForm = document.getElementById('event-form');
     if (eventForm) {
         eventForm.addEventListener('submit', handleEventFormSubmit);
     }
-    
-    // Remove inline onclick handlers and replace with proper event listeners
-    setupEventButtonHandlers();
 });
 
-function setupEventButtonHandlers() {
-    // Add Event button
-    const addEventBtn = document.querySelector('button[data-action="add-event"]');
-    if (addEventBtn) {
-        addEventBtn.addEventListener('click', function() {
-            openEventModal();
-        });
-    }
-    
-    // Edit/Delete buttons
-    document.querySelectorAll('button[data-rule-id]').forEach(function(btn) {
-        const eventId = btn.getAttribute('data-rule-id');
-        const action = btn.getAttribute('data-action');
+function setupEventDelegation() {
+    // Use event delegation on document body to handle dynamically added buttons
+    document.body.addEventListener('click', function(e) {
+        const target = e.target;
         
-        if (action === 'edit') {
-            btn.addEventListener('click', function() {
+        // Prevent default navigation for buttons
+        if (target.tagName === 'BUTTON' || target.getAttribute('role') === 'button') {
+            e.preventDefault();
+        }
+        
+        // Handle different button actions
+        if (target.getAttribute('data-action') === 'add-event') {
+            e.preventDefault();
+            openEventModal();
+        } else if (target.getAttribute('data-action') === 'edit') {
+            e.preventDefault();
+            const eventId = target.getAttribute('data-rule-id');
+            if (eventId) {
                 editEvent(eventId);
-            });
-        } else if (action === 'delete') {
-            btn.addEventListener('click', function() {
+            }
+        } else if (target.getAttribute('data-action') === 'delete') {
+            e.preventDefault();
+            const eventId = target.getAttribute('data-rule-id');
+            if (eventId) {
                 deleteEvent(eventId);
-            });
+            }
+        } else if (target.getAttribute('data-action') === 'close-modal' || target.classList.contains('clicktally-modal-close')) {
+            e.preventDefault();
+            closeEventModal();
+        } else if (target.getAttribute('data-action') === 'dom-picker') {
+            e.preventDefault();
+            openDOMPicker();
         }
     });
-    
-    // Modal close buttons
-    document.querySelectorAll('button[data-action="close-modal"], .clicktally-modal-close').forEach(function(btn) {
-        btn.addEventListener('click', closeEventModal);
-    });
-    
-    // DOM picker button
-    const domPickerBtn = document.querySelector('button[data-action="dom-picker"]');
-    if (domPickerBtn) {
-        domPickerBtn.addEventListener('click', openDOMPicker);
-    }
 }
 
 function openEventModal(eventId) {
@@ -184,7 +183,14 @@ function deleteEvent(eventId) {
         })
         .then(response => {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                // Handle different error types
+                if (response.status === 403) {
+                    throw new Error('Permission denied. Check your capabilities.');
+                } else if (response.status === 404) {
+                    throw new Error('REST endpoint not found. Try flushing permalinks.');
+                } else {
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
             }
             return response.json();
         })
@@ -266,7 +272,14 @@ function handleEventFormSubmit(e) {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            // Handle different error types
+            if (response.status === 403) {
+                throw new Error('Permission denied. Check your capabilities.');
+            } else if (response.status === 404) {
+                throw new Error('REST endpoint not found. Try flushing permalinks.');
+            } else {
+                throw new Error('Network response was not ok: ' + response.status);
+            }
         }
         return response.json();
     })

@@ -384,6 +384,14 @@ class Clicktally_Element_Event_Tracker_Admin_Menu {
                                 </span>
                             </td>
                         </tr>
+                        <tr>
+                            <th scope="row"><?php echo esc_html__('Editor Role Access (should be read-only)', 'clicktally'); ?></th>
+                            <td>
+                                <span class="clicktally-status-<?php echo $diagnostics['editor_readonly'] ? 'ok' : 'warning'; ?>">
+                                    <?php echo $diagnostics['editor_readonly'] ? '✓ ' . __('Correctly denied', 'clicktally') : '⚠ ' . __('Has write access (unexpected)', 'clicktally'); ?>
+                                </span>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -548,11 +556,19 @@ class Clicktally_Element_Event_Tracker_Admin_Menu {
     private static function clicktally_element_event_tracker_get_diagnostics_data() {
         $current_user = wp_get_current_user();
         
+        // Check if editor role has proper read-only access
+        $editor_role = get_role('editor');
+        $editor_readonly = true;
+        if ($editor_role) {
+            $editor_readonly = !$editor_role->has_cap('manage_clicktally_element_event_tracker');
+        }
+        
         return array(
             'primary_capability' => current_user_can('manage_clicktally_element_event_tracker'),
             'legacy_capability' => current_user_can('manage_clicktally'),
             'user_roles' => $current_user->roles,
             'migration_done' => get_option('clicktally_capability_migration_done', false),
+            'editor_readonly' => $editor_readonly,
             'rest_enabled' => function_exists('rest_get_server'),
             'permalinks_enabled' => get_option('permalink_structure') !== '',
             'debug_info' => self::clicktally_element_event_tracker_get_debug_info()
