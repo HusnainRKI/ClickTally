@@ -138,6 +138,13 @@ class Clicktally_Element_Event_Tracker_Admin_Menu {
             
         } elseif ($hook_suffix === 'clicktally_page_clicktally-element-event-tracker-rules') {
             // Rules page - load React components for Add/Edit rule functionality
+            wp_enqueue_style(
+                'clicktally-element-event-tracker-rules-style',
+                CLICKTALLY_PLUGIN_URL . 'assets/css/admin-rules.css',
+                array(),
+                CLICKTALLY_VERSION . '.1' // Bust cache
+            );
+            
             wp_enqueue_script(
                 'clicktally-element-event-tracker-rules-script',
                 CLICKTALLY_PLUGIN_URL . 'assets/js/admin-rules.js',
@@ -285,20 +292,218 @@ class Clicktally_Element_Event_Tracker_Admin_Menu {
     }
     
     /**
-     * Render Tracking Rules page (delegates to existing functionality for now)
+     * Render Tracking Rules page (new AJAX-based implementation)
      */
     public static function clicktally_element_event_tracker_render_rules_page() {
         if (!current_user_can('manage_clicktally_element_event_tracker')) {
             wp_die(__('You do not have sufficient permissions to access this page.', 'clicktally'));
         }
         
-        // For now, use existing rules page functionality
-        if (class_exists('ClickTally_Admin')) {
-            ClickTally_Admin::render_rules_page();
-        } else {
-            echo '<div class="wrap"><h1>' . esc_html__('Tracking Rules', 'clicktally') . '</h1>';
-            echo '<p>' . esc_html__('Rules functionality will be available soon.', 'clicktally') . '</p></div>';
-        }
+        // Get current rules for initial display
+        $rules = ClickTally_Rules::get_active_rules();
+        
+        ?>
+        <div class="wrap">
+            <h1><?php echo esc_html__('Event Tracking Rules', 'clicktally'); ?></h1>
+            <p><?php echo esc_html__('Create and manage event tracking rules to monitor specific user interactions on your website.', 'clicktally'); ?></p>
+            
+            <!-- Messages Container -->
+            <div id="clicktally-messages-container"></div>
+            
+            <!-- Add/Edit Form Panel -->
+            <div class="clicktally-form-panel" id="clicktally-form-panel">
+                <div class="clicktally-form-header">
+                    <h3 id="clicktally-form-title"><?php echo esc_html__('Add New Tracking Event', 'clicktally'); ?></h3>
+                    <button type="button" class="clicktally-form-toggle" id="clicktally-form-toggle" title="<?php echo esc_attr__('Hide Form', 'clicktally'); ?>">
+                        <span class="dashicons dashicons-minus"></span>
+                    </button>
+                </div>
+                <div class="clicktally-form-body" id="clicktally-form-body">
+                    <form id="clicktally-event-form">
+                        <input type="hidden" id="event-id" name="event_id" value="">
+                        
+                        <div class="clicktally-form-grid">
+                            <div class="clicktally-form-row">
+                                <label for="event-name"><?php echo esc_html__('Event Name', 'clicktally'); ?> <span class="required">*</span></label>
+                                <input type="text" id="event-name" name="event_name" required 
+                                       placeholder="<?php echo esc_attr__('e.g., Header CTA Click', 'clicktally'); ?>">
+                                <div class="description"><?php echo esc_html__('A descriptive name for this tracking event.', 'clicktally'); ?></div>
+                            </div>
+                            
+                            <div class="clicktally-form-row">
+                                <label for="event-type"><?php echo esc_html__('Event Type', 'clicktally'); ?></label>
+                                <select id="event-type" name="event_type">
+                                    <option value="click"><?php echo esc_html__('Click', 'clicktally'); ?></option>
+                                    <option value="submit"><?php echo esc_html__('Form Submit', 'clicktally'); ?></option>
+                                    <option value="change"><?php echo esc_html__('Input Change', 'clicktally'); ?></option>
+                                    <option value="view"><?php echo esc_html__('Element View (Intersection)', 'clicktally'); ?></option>
+                                </select>
+                                <div class="description"><?php echo esc_html__('The type of user interaction to track.', 'clicktally'); ?></div>
+                            </div>
+                            
+                            <div class="clicktally-form-row">
+                                <label for="selector-type"><?php echo esc_html__('Selector Type', 'clicktally'); ?> <span class="required">*</span></label>
+                                <select id="selector-type" name="selector_type" required>
+                                    <option value="id"><?php echo esc_html__('Element ID', 'clicktally'); ?></option>
+                                    <option value="class"><?php echo esc_html__('CSS Class', 'clicktally'); ?></option>
+                                    <option value="css"><?php echo esc_html__('CSS Selector', 'clicktally'); ?></option>
+                                    <option value="xpath"><?php echo esc_html__('XPath', 'clicktally'); ?></option>
+                                    <option value="data"><?php echo esc_html__('Data Attribute', 'clicktally'); ?></option>
+                                </select>
+                                <div class="description"><?php echo esc_html__('How to identify the element on the page.', 'clicktally'); ?></div>
+                            </div>
+                            
+                            <div class="clicktally-form-row">
+                                <label for="selector-value"><?php echo esc_html__('Selector Value', 'clicktally'); ?> <span class="required">*</span></label>
+                                <div class="clicktally-input-group">
+                                    <input type="text" id="selector-value" name="selector_value" required 
+                                           placeholder="<?php echo esc_attr__('e.g., signup-button', 'clicktally'); ?>">
+                                    <button type="button" class="button" id="selector-picker-btn">
+                                        <?php echo esc_html__('Pick Element', 'clicktally'); ?>
+                                    </button>
+                                </div>
+                                <div class="description" id="selector-help-text">
+                                    <?php echo esc_html__('Enter the element ID (without #) or selector.', 'clicktally'); ?>
+                                </div>
+                            </div>
+                            
+                            <div class="clicktally-form-row full-width">
+                                <label for="label-template"><?php echo esc_html__('Label Template', 'clicktally'); ?></label>
+                                <input type="text" id="label-template" name="label_template" 
+                                       placeholder="<?php echo esc_attr__('e.g., {text} → {href}', 'clicktally'); ?>">
+                                <div class="description">
+                                    <?php echo esc_html__('Optional: Customize how events are labeled. Available tokens: {text}, {href}, {id}, {class}, {data-*}', 'clicktally'); ?>
+                                </div>
+                            </div>
+                            
+                            <div class="clicktally-form-row">
+                                <label for="throttle-ms"><?php echo esc_html__('Throttle (ms)', 'clicktally'); ?></label>
+                                <input type="number" id="throttle-ms" name="throttle_ms" min="0" max="5000" value="0">
+                                <div class="description"><?php echo esc_html__('Minimum time between events (0 = no throttling).', 'clicktally'); ?></div>
+                            </div>
+                            
+                            <div class="clicktally-form-row">
+                                <label>
+                                    <input type="checkbox" id="once-per-view" name="once_per_view">
+                                    <?php echo esc_html__('Count once per page view', 'clicktally'); ?>
+                                </label>
+                                <div class="description"><?php echo esc_html__('Only track the first occurrence of this event per page load.', 'clicktally'); ?></div>
+                            </div>
+                        </div>
+                        
+                        <div class="clicktally-form-actions">
+                            <button type="button" class="button button-secondary clicktally-cancel" id="cancel-event-btn">
+                                <?php echo esc_html__('Cancel', 'clicktally'); ?>
+                            </button>
+                            <button type="submit" class="button button-primary clicktally-save" id="save-event-btn">
+                                <?php echo esc_html__('Save Event', 'clicktally'); ?>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Rules List -->
+            <div class="clicktally-rules-page">
+                <div class="clicktally-rules-header">
+                    <h2><?php echo esc_html__('Active Tracking Rules', 'clicktally'); ?></h2>
+                    <button type="button" class="button button-primary" id="add-new-event-btn">
+                        <span class="dashicons dashicons-plus-alt2"></span>
+                        <?php echo esc_html__('Add New Event', 'clicktally'); ?>
+                    </button>
+                </div>
+                
+                <div class="clicktally-rules-list" id="clicktally-rules-list">
+                    <?php if (empty($rules)): ?>
+                        <div class="clicktally-empty-state">
+                            <div class="dashicons dashicons-chart-bar"></div>
+                            <h3><?php echo esc_html__('No tracking events configured', 'clicktally'); ?></h3>
+                            <p><?php echo esc_html__('Create your first tracking event to start monitoring user interactions on your website.', 'clicktally'); ?></p>
+                            <button type="button" class="button button-primary" data-action="show-form">
+                                <?php echo esc_html__('Create First Event', 'clicktally'); ?>
+                            </button>
+                        </div>
+                    <?php else: ?>
+                        <?php self::clicktally_element_event_tracker_render_rules_table($rules); ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        
+        <script type="text/javascript">
+            // Initialize rules page functionality
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof ClickTallyRulesAdmin !== 'undefined') {
+                    ClickTallyRulesAdmin.init();
+                }
+            });
+        </script>
+        <?php
+    }
+    
+    /**
+     * Render rules table
+     */
+    private static function clicktally_element_event_tracker_render_rules_table($rules) {
+        ?>
+        <table class="clicktally-rules-table">
+            <thead>
+                <tr>
+                    <th scope="col"><?php echo esc_html__('Event Name', 'clicktally'); ?></th>
+                    <th scope="col"><?php echo esc_html__('Selector', 'clicktally'); ?></th>
+                    <th scope="col"><?php echo esc_html__('Type', 'clicktally'); ?></th>
+                    <th scope="col"><?php echo esc_html__('Status', 'clicktally'); ?></th>
+                    <th scope="col"><?php echo esc_html__('Actions', 'clicktally'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($rules as $rule): ?>
+                    <tr data-rule-id="<?php echo esc_attr($rule['id']); ?>">
+                        <td class="event-name">
+                            <strong><?php echo esc_html($rule['event_name']); ?></strong>
+                            <?php if ($rule['auto_rule']): ?>
+                                <span class="clicktally-auto-rule-indicator" title="<?php echo esc_attr__('Auto-generated rule', 'clicktally'); ?>">
+                                    <span class="dashicons dashicons-admin-tools"></span>
+                                </span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <span class="selector-display">
+                                <?php echo esc_html($rule['selector_type'] . ': ' . $rule['selector_value']); ?>
+                            </span>
+                        </td>
+                        <td>
+                            <span class="event-type <?php echo esc_attr($rule['event_type']); ?>">
+                                <?php echo esc_html(ucfirst($rule['event_type'])); ?>
+                            </span>
+                        </td>
+                        <td>
+                            <span class="clicktally-status <?php echo esc_attr($rule['status']); ?>">
+                                <?php echo esc_html(ucfirst($rule['status'])); ?>
+                            </span>
+                        </td>
+                        <td>
+                            <div class="clicktally-table-actions">
+                                <button type="button" class="button button-small" 
+                                        data-rule-id="<?php echo esc_attr($rule['id']); ?>" 
+                                        data-action="edit-rule">
+                                    <?php echo esc_html__('Edit', 'clicktally'); ?>
+                                </button>
+                                <?php if (!$rule['auto_rule']): ?>
+                                    <button type="button" class="button button-small button-link-delete" 
+                                            data-rule-id="<?php echo esc_attr($rule['id']); ?>" 
+                                            data-action="delete-rule"
+                                            data-event-name="<?php echo esc_attr($rule['event_name']); ?>">
+                                        <?php echo esc_html__('Delete', 'clicktally'); ?>
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php
     }
     
     /**

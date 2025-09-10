@@ -1,176 +1,468 @@
 /**
- * ClickTally Admin Event Rules JavaScript
- * For managing tracking events with event delegation and proper error handling
+ * ClickTally Rules Admin JavaScript
+ * Modern AJAX-based CRUD implementation for event tracking rules
  */
 
-document.addEventListener('DOMContentLoaded', function() {
+// Global namespace for rules admin functionality
+window.ClickTallyRulesAdmin = (function() {
     'use strict';
     
-    // Use event delegation for better handling of dynamic content
-    setupEventDelegation();
+    // Private variables
+    let isFormVisible = true;
+    let currentEditingRuleId = null;
+    let isSubmitting = false;
     
-    // Set up event form handling
-    const eventForm = document.getElementById('event-form');
-    if (eventForm) {
-        eventForm.addEventListener('submit', handleEventFormSubmit);
+    // DOM elements (cached for performance)
+    const elements = {};
+    
+    /**
+     * Initialize the rules admin interface
+     */
+    function init() {
+        cacheElements();
+        bindEvents();
+        updateFormVisibility();
+        updateSelectorHelp();
     }
-});
-
-function setupEventDelegation() {
-    // Use event delegation on document body to handle dynamically added buttons
-    document.body.addEventListener('click', function(e) {
-        const target = e.target;
-        
-        // Prevent default navigation for buttons
-        if (target.tagName === 'BUTTON' || target.getAttribute('role') === 'button') {
-            e.preventDefault();
+    
+    /**
+     * Cache DOM elements for better performance
+     */
+    function cacheElements() {
+        elements.formPanel = document.getElementById('clicktally-form-panel');
+        elements.formTitle = document.getElementById('clicktally-form-title');
+        elements.formToggle = document.getElementById('clicktally-form-toggle');
+        elements.formBody = document.getElementById('clicktally-form-body');
+        elements.eventForm = document.getElementById('clicktally-event-form');
+        elements.rulesList = document.getElementById('clicktally-rules-list');
+        elements.messagesContainer = document.getElementById('clicktally-messages-container');
+        elements.addNewBtn = document.getElementById('add-new-event-btn');
+        elements.cancelBtn = document.getElementById('cancel-event-btn');
+        elements.saveBtn = document.getElementById('save-event-btn');
+        elements.selectorType = document.getElementById('selector-type');
+        elements.selectorValue = document.getElementById('selector-value');
+        elements.selectorPickerBtn = document.getElementById('selector-picker-btn');
+        elements.selectorHelpText = document.getElementById('selector-help-text');
+        elements.eventName = document.getElementById('event-name');
+        elements.eventId = document.getElementById('event-id');
+    }
+    
+    /**
+     * Bind event handlers
+     */
+    function bindEvents() {
+        // Form toggle
+        if (elements.formToggle) {
+            elements.formToggle.addEventListener('click', toggleForm);
         }
         
-        // Handle different button actions
-        if (target.getAttribute('data-action') === 'add-event') {
-            e.preventDefault();
-            openEventModal();
-        } else if (target.getAttribute('data-action') === 'edit') {
-            e.preventDefault();
-            const eventId = target.getAttribute('data-rule-id');
-            if (eventId) {
-                editEvent(eventId);
-            }
-        } else if (target.getAttribute('data-action') === 'delete') {
-            e.preventDefault();
-            const eventId = target.getAttribute('data-rule-id');
-            if (eventId) {
-                deleteEvent(eventId);
-            }
-        } else if (target.getAttribute('data-action') === 'close-modal' || target.classList.contains('clicktally-modal-close')) {
-            e.preventDefault();
-            closeEventModal();
-        } else if (target.getAttribute('data-action') === 'dom-picker') {
-            e.preventDefault();
-            openDOMPicker();
+        // Add new event button
+        if (elements.addNewBtn) {
+            elements.addNewBtn.addEventListener('click', showAddForm);
         }
-    });
-}
-
-function openEventModal(eventId) {
-    const modal = document.getElementById('event-modal');
-    if (modal) {
-        modal.style.display = 'block';
-        if (eventId) {
-            // Load event data for editing
-            loadEventData(eventId);
+        
+        // Cancel button
+        if (elements.cancelBtn) {
+            elements.cancelBtn.addEventListener('click', cancelEdit);
+        }
+        
+        // Form submission
+        if (elements.eventForm) {
+            elements.eventForm.addEventListener('submit', handleFormSubmit);
+        }
+        
+        // Selector type change
+        if (elements.selectorType) {
+            elements.selectorType.addEventListener('change', updateSelectorHelp);
+        }
+        
+        // Selector picker
+        if (elements.selectorPickerBtn) {
+            elements.selectorPickerBtn.addEventListener('click', openSelectorPicker);
+        }
+        
+        // Event delegation for table actions
+        if (elements.rulesList) {
+            elements.rulesList.addEventListener('click', handleTableAction);
+        }
+        
+        // Auto-generate event name from selector
+        if (elements.selectorValue && elements.eventName) {
+            elements.selectorValue.addEventListener('input', autoGenerateEventName);
+        }
+    }
+    
+    /**
+     * Toggle form visibility
+     */
+    function toggleForm() {
+        isFormVisible = !isFormVisible;
+        updateFormVisibility();
+    }
+    
+    /**
+     * Update form visibility state
+     */
+    function updateFormVisibility() {
+        if (!elements.formPanel || !elements.formToggle) return;
+        
+        const icon = elements.formToggle.querySelector('.dashicons');
+        
+        if (isFormVisible) {
+            elements.formBody.style.display = 'block';
+            elements.formPanel.classList.remove('collapsed');
+            icon.className = 'dashicons dashicons-minus';
+            elements.formToggle.title = 'Hide Form';
         } else {
-            // Reset form for new event
-            const form = document.getElementById('event-form');
-            if (form) {
-                form.reset();
-            }
-            const eventIdField = document.getElementById('event-id');
-            if (eventIdField) {
-                eventIdField.value = '';
-            }
+            elements.formBody.style.display = 'none';
+            elements.formPanel.classList.add('collapsed');
+            icon.className = 'dashicons dashicons-plus-alt2';
+            elements.formToggle.title = 'Show Form';
         }
     }
-}
-
-function closeEventModal() {
-    const modal = document.getElementById('event-modal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function openDOMPicker() {
-    // Basic DOM picker implementation
-    // In a real implementation, this would open a modal with an iframe
     
-    const selectorValueField = document.getElementById('selector-value');
-    if (!selectorValueField) return;
-    
-    // For now, provide a simple prompt-based approach
-    const selector = prompt('Enter a CSS selector or element ID/class:\n\nExamples:\n- #my-button (for ID)\n- .my-class (for class)\n- button.primary (for CSS selector)\n- //button[@id="submit"] (for XPath)');
-    
-    if (selector && selector.trim()) {
-        selectorValueField.value = selector.trim();
+    /**
+     * Show form for adding new event
+     */
+    function showAddForm() {
+        resetForm();
+        currentEditingRuleId = null;
+        elements.formTitle.textContent = 'Add New Tracking Event';
+        elements.saveBtn.textContent = 'Save Event';
         
-        // Try to determine selector type automatically
-        const selectorTypeField = document.getElementById('selector-type');
-        if (selectorTypeField) {
-            if (selector.startsWith('#')) {
-                selectorTypeField.value = 'id';
-                selectorValueField.value = selector.substring(1); // Remove the #
-            } else if (selector.startsWith('.') && !selector.includes(' ')) {
-                selectorTypeField.value = 'class';
-                selectorValueField.value = selector.substring(1); // Remove the .
-            } else if (selector.startsWith('//')) {
-                selectorTypeField.value = 'xpath';
-            } else if (selector.includes('[data-')) {
-                selectorTypeField.value = 'data';
-            } else {
-                selectorTypeField.value = 'css';
-            }
+        if (!isFormVisible) {
+            isFormVisible = true;
+            updateFormVisibility();
         }
         
-        // Auto-generate event name if empty
-        const eventNameField = document.getElementById('event-name');
-        if (eventNameField && !eventNameField.value.trim()) {
-            let autoName = selector;
-            if (selector.startsWith('#')) {
-                autoName = selector.substring(1) + ' Click';
-            } else if (selector.startsWith('.')) {
-                autoName = selector.substring(1).replace(/-/g, ' ') + ' Click';
-            } else {
-                autoName = 'Element Click';
-            }
-            eventNameField.value = autoName.charAt(0).toUpperCase() + autoName.slice(1);
+        // Focus on event name field
+        if (elements.eventName) {
+            elements.eventName.focus();
         }
     }
-}
-
-function loadEventData(eventId) {
-    // For now, we'll implement a simple approach that populates the form
-    // In a real implementation, this would fetch data via AJAX
     
-    // Show loading in modal
-    const modal = document.getElementById('event-modal');
-    if (modal) {
-        const form = document.getElementById('event-form');
-        if (form) {
-            // Set the event ID
-            const eventIdField = document.getElementById('event-id');
-            if (eventIdField) {
-                eventIdField.value = eventId;
-            }
-            
-            // TODO: Fetch actual event data from server
-            // For now, just log that we're loading
-            console.log('Loading event data for ID:', eventId);
-            
-            // In a future implementation, we would:
-            // 1. Make an AJAX request to get the event data
-            // 2. Populate the form fields with the returned data
-            // 3. Handle any errors appropriately
+    /**
+     * Cancel editing and hide form
+     */
+    function cancelEdit() {
+        resetForm();
+        currentEditingRuleId = null;
+        
+        if (hasExistingRules()) {
+            isFormVisible = false;
+            updateFormVisibility();
         }
     }
-}
-
-function editEvent(eventId) {
-    openEventModal(eventId);
-}
-
-function deleteEvent(eventId) {
-    if (confirm(clickTallyAdmin.strings.confirmDelete)) {
-        // Show loading state
-        const deleteBtn = document.querySelector(`button[data-rule-id="${eventId}"][data-action="delete"]`);
+    
+    /**
+     * Check if there are existing rules
+     */
+    function hasExistingRules() {
+        const table = elements.rulesList.querySelector('.clicktally-rules-table');
+        return table && table.querySelector('tbody tr');
+    }
+    
+    /**
+     * Reset form to initial state
+     */
+    function resetForm() {
+        if (elements.eventForm) {
+            elements.eventForm.reset();
+        }
+        if (elements.eventId) {
+            elements.eventId.value = '';
+        }
+        updateSelectorHelp();
+        clearMessages();
+    }
+    
+    /**
+     * Handle form submission
+     */
+    function handleFormSubmit(e) {
+        e.preventDefault();
+        
+        if (isSubmitting) {
+            return;
+        }
+        
+        if (!validateForm()) {
+            return;
+        }
+        
+        const formData = new FormData(elements.eventForm);
+        const eventData = {
+            event_name: formData.get('event_name'),
+            selector_type: formData.get('selector_type'),
+            selector_value: formData.get('selector_value'),
+            event_type: formData.get('event_type'),
+            label_template: formData.get('label_template') || '',
+            throttle_ms: parseInt(formData.get('throttle_ms')) || 0,
+            once_per_view: formData.get('once_per_view') ? true : false
+        };
+        
+        const isUpdate = currentEditingRuleId !== null;
+        
+        setFormLoading(true);
+        
+        const requestData = {
+            action: isUpdate ? 'update' : 'create',
+            ...eventData
+        };
+        
+        if (isUpdate) {
+            requestData.rule_id = currentEditingRuleId;
+        }
+        
+        // Make API request
+        fetch(clickTallyAdmin.apiUrl + 'rules/manage', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': clickTallyAdmin.nonce
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 403) {
+                    throw new Error('Permission denied. Please check your user capabilities.');
+                } else if (response.status === 404) {
+                    throw new Error('REST endpoint not found. Try refreshing the page or contact support.');
+                } else {
+                    throw new Error('Request failed with status: ' + response.status);
+                }
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const message = isUpdate ? 'Event updated successfully!' : 'Event created successfully!';
+                showMessage(message, 'success');
+                
+                // Refresh the rules list
+                refreshRulesList();
+                
+                // Reset form and hide it if we have rules
+                resetForm();
+                currentEditingRuleId = null;
+                
+                if (hasExistingRules()) {
+                    isFormVisible = false;
+                    updateFormVisibility();
+                }
+            } else {
+                throw new Error(data.message || 'Unknown error occurred');
+            }
+        })
+        .catch(error => {
+            console.error('Form submission error:', error);
+            showMessage(error.message || 'An error occurred while saving the event.', 'error');
+        })
+        .finally(() => {
+            setFormLoading(false);
+        });
+    }
+    
+    /**
+     * Validate form data
+     */
+    function validateForm() {
+        const eventName = elements.eventName.value.trim();
+        const selectorType = elements.selectorType.value;
+        const selectorValue = elements.selectorValue.value.trim();
+        
+        if (!eventName) {
+            showMessage('Event name is required.', 'error');
+            elements.eventName.focus();
+            return false;
+        }
+        
+        if (!selectorType) {
+            showMessage('Selector type is required.', 'error');
+            elements.selectorType.focus();
+            return false;
+        }
+        
+        if (!selectorValue) {
+            showMessage('Selector value is required.', 'error');
+            elements.selectorValue.focus();
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Set form loading state
+     */
+    function setFormLoading(loading) {
+        isSubmitting = loading;
+        
+        if (elements.saveBtn) {
+            elements.saveBtn.disabled = loading;
+            elements.saveBtn.textContent = loading ? 'Saving...' : 
+                (currentEditingRuleId ? 'Update Event' : 'Save Event');
+        }
+        
+        if (elements.cancelBtn) {
+            elements.cancelBtn.disabled = loading;
+        }
+        
+        // Disable form inputs
+        const inputs = elements.eventForm.querySelectorAll('input, select, textarea, button');
+        inputs.forEach(input => {
+            if (input !== elements.saveBtn && input !== elements.cancelBtn) {
+                input.disabled = loading;
+            }
+        });
+    }
+    
+    /**
+     * Handle table action clicks (edit, delete)
+     */
+    function handleTableAction(e) {
+        const action = e.target.getAttribute('data-action');
+        const ruleId = e.target.getAttribute('data-rule-id');
+        
+        if (!action || !ruleId) {
+            return;
+        }
+        
+        e.preventDefault();
+        
+        switch (action) {
+            case 'edit-rule':
+                editRule(ruleId);
+                break;
+            case 'delete-rule':
+                const eventName = e.target.getAttribute('data-event-name');
+                deleteRule(ruleId, eventName);
+                break;
+        }
+    }
+    
+    /**
+     * Edit a rule
+     */
+    function editRule(ruleId) {
+        // Find the rule data from the table
+        const row = document.querySelector(`tr[data-rule-id="${ruleId}"]`);
+        if (!row) {
+            showMessage('Rule not found.', 'error');
+            return;
+        }
+        
+        // For now, we'll need to fetch the rule data via API
+        // This is a simplified implementation - in production you'd fetch full rule data
+        showMessage('Loading rule data...', 'info');
+        
+        fetch(clickTallyAdmin.apiUrl + 'rules/get?id=' + ruleId, {
+            method: 'GET',
+            headers: {
+                'X-WP-Nonce': clickTallyAdmin.nonce
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load rule data');
+            }
+            return response.json();
+        })
+        .then(ruleData => {
+            loadRuleIntoForm(ruleData);
+        })
+        .catch(error => {
+            console.error('Error loading rule:', error);
+            // Fallback: try to extract basic data from the table
+            loadBasicRuleDataFromTable(ruleId);
+        });
+    }
+    
+    /**
+     * Load rule data into form (fallback method)
+     */
+    function loadBasicRuleDataFromTable(ruleId) {
+        const row = document.querySelector(`tr[data-rule-id="${ruleId}"]`);
+        if (!row) return;
+        
+        const eventName = row.querySelector('.event-name strong').textContent.trim();
+        const selectorText = row.querySelector('.selector-display').textContent.trim();
+        const eventType = row.querySelector('.event-type').textContent.toLowerCase().trim();
+        
+        // Parse selector text (format: "type: value")
+        const selectorParts = selectorText.split(':', 2);
+        const selectorType = selectorParts[0].trim();
+        const selectorValue = selectorParts[1] ? selectorParts[1].trim() : '';
+        
+        // Populate form
+        currentEditingRuleId = ruleId;
+        elements.eventId.value = ruleId;
+        elements.eventName.value = eventName;
+        elements.selectorType.value = selectorType;
+        elements.selectorValue.value = selectorValue;
+        document.getElementById('event-type').value = eventType;
+        
+        // Update form UI
+        elements.formTitle.textContent = 'Edit Tracking Event';
+        elements.saveBtn.textContent = 'Update Event';
+        
+        // Show form
+        if (!isFormVisible) {
+            isFormVisible = true;
+            updateFormVisibility();
+        }
+        
+        clearMessages();
+    }
+    
+    /**
+     * Load rule data into form
+     */
+    function loadRuleIntoForm(ruleData) {
+        currentEditingRuleId = ruleData.id;
+        elements.eventId.value = ruleData.id;
+        elements.eventName.value = ruleData.event_name || '';
+        elements.selectorType.value = ruleData.selector_type || 'id';
+        elements.selectorValue.value = ruleData.selector_value || '';
+        document.getElementById('event-type').value = ruleData.event_type || 'click';
+        document.getElementById('label-template').value = ruleData.label_template || '';
+        document.getElementById('throttle-ms').value = ruleData.throttle_ms || 0;
+        document.getElementById('once-per-view').checked = ruleData.once_per_view || false;
+        
+        // Update form UI
+        elements.formTitle.textContent = 'Edit Tracking Event';
+        elements.saveBtn.textContent = 'Update Event';
+        
+        // Show form
+        if (!isFormVisible) {
+            isFormVisible = true;
+            updateFormVisibility();
+        }
+        
+        updateSelectorHelp();
+        clearMessages();
+    }
+    
+    /**
+     * Delete a rule
+     */
+    function deleteRule(ruleId, eventName) {
+        const message = eventName ? 
+            `Are you sure you want to delete the event "${eventName}"?` :
+            'Are you sure you want to delete this event?';
+            
+        if (!confirm(message + '\n\nThis action cannot be undone.')) {
+            return;
+        }
+        
+        const deleteBtn = document.querySelector(`button[data-rule-id="${ruleId}"][data-action="delete-rule"]`);
         if (deleteBtn) {
             deleteBtn.disabled = true;
             deleteBtn.textContent = 'Deleting...';
         }
         
-        // Submit deletion via REST API
-        const url = clickTallyAdmin.apiUrl + 'rules/manage';
-        
-        fetch(url, {
+        fetch(clickTallyAdmin.apiUrl + 'rules/manage', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -178,132 +470,167 @@ function deleteEvent(eventId) {
             },
             body: JSON.stringify({
                 action: 'delete',
-                rule_id: eventId
+                rule_id: ruleId
             })
         })
         .then(response => {
             if (!response.ok) {
-                // Handle different error types
                 if (response.status === 403) {
-                    throw new Error('Permission denied. Check your capabilities.');
-                } else if (response.status === 404) {
-                    throw new Error('REST endpoint not found. Try flushing permalinks.');
+                    throw new Error('Permission denied. You do not have permission to delete rules.');
                 } else {
-                    throw new Error('Network response was not ok: ' + response.status);
+                    throw new Error('Delete request failed');
                 }
             }
             return response.json();
         })
         .then(data => {
             if (data.success) {
-                // Show success message
-                alert(clickTallyAdmin.strings.eventDeleted);
+                showMessage('Event deleted successfully!', 'success');
+                refreshRulesList();
                 
-                // Refresh the page to show updated list
-                location.reload();
+                // If we were editing this rule, clear the form
+                if (currentEditingRuleId === ruleId) {
+                    cancelEdit();
+                }
             } else {
-                throw new Error(data.message || 'Unknown error');
+                throw new Error(data.message || 'Delete failed');
             }
         })
         .catch(error => {
-            console.error('Error deleting event:', error);
-            alert(clickTallyAdmin.strings.errorGeneral);
+            console.error('Delete error:', error);
+            showMessage(error.message || 'Failed to delete event.', 'error');
         })
         .finally(() => {
-            // Restore button state
             if (deleteBtn) {
                 deleteBtn.disabled = false;
                 deleteBtn.textContent = 'Delete';
             }
         });
     }
-}
-
-function handleEventFormSubmit(e) {
-    e.preventDefault();
     
-    const form = document.getElementById('event-form');
-    if (!form) return;
-    
-    // Validate form
-    const selectorType = form.querySelector('#selector-type').value;
-    const selectorValue = form.querySelector('#selector-value').value.trim();
-    const eventName = form.querySelector('#event-name').value.trim();
-    
-    if (!selectorType || !selectorValue || !eventName) {
-        alert('Please fill in all required fields.');
-        return;
+    /**
+     * Refresh the rules list
+     */
+    function refreshRulesList() {
+        // For now, reload the page to refresh the list
+        // In a full implementation, you'd fetch and re-render the table via AJAX
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
     }
     
-    // Show loading state
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const originalText = submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Saving...';
+    /**
+     * Update selector help text based on selected type
+     */
+    function updateSelectorHelp() {
+        if (!elements.selectorType || !elements.selectorHelpText) return;
+        
+        const selectorType = elements.selectorType.value;
+        const helpTexts = {
+            'id': 'Enter the element ID (without #). Example: signup-button',
+            'class': 'Enter the CSS class name (without .). Example: btn-primary',
+            'css': 'Enter a CSS selector. Example: .header .nav-menu a',
+            'xpath': 'Enter an XPath expression. Example: //button[@id="submit"]',
+            'data': 'Enter the data attribute name. Example: action (for data-action)'
+        };
+        
+        elements.selectorHelpText.textContent = helpTexts[selectorType] || 'Enter the selector value.';
+        
+        // Update placeholder
+        const placeholders = {
+            'id': 'signup-button',
+            'class': 'btn-primary',
+            'css': '.header .nav-menu a',
+            'xpath': '//button[@id="submit"]',
+            'data': 'action'
+        };
+        
+        if (elements.selectorValue) {
+            elements.selectorValue.placeholder = placeholders[selectorType] || '';
+        }
+    }
     
-    // Prepare data
-    const eventId = form.querySelector('#event-id').value;
-    const formData = new FormData(form);
-    const eventData = {
-        selector_type: selectorType,
-        selector_value: selectorValue,
-        event_name: eventName,
-        event_type: formData.get('event_type') || 'click',
-        label_template: formData.get('label_template') || '',
-        throttle_ms: parseInt(formData.get('throttle_ms')) || 0,
-        once_per_view: formData.get('once_per_view') ? true : false
+    /**
+     * Auto-generate event name from selector
+     */
+    function autoGenerateEventName() {
+        if (!elements.eventName || !elements.selectorValue || !elements.selectorType) return;
+        
+        // Only auto-generate if event name is empty
+        if (elements.eventName.value.trim() !== '') return;
+        
+        const selectorValue = elements.selectorValue.value.trim();
+        const selectorType = elements.selectorType.value;
+        
+        if (!selectorValue) return;
+        
+        let eventName = '';
+        
+        if (selectorType === 'id') {
+            eventName = selectorValue.replace(/[-_]/g, ' ') + ' Click';
+        } else if (selectorType === 'class') {
+            eventName = selectorValue.replace(/[-_]/g, ' ') + ' Click';
+        } else {
+            eventName = 'Element Click';
+        }
+        
+        // Capitalize first letter of each word
+        eventName = eventName.replace(/\b\w/g, l => l.toUpperCase());
+        
+        elements.eventName.value = eventName;
+    }
+    
+    /**
+     * Open selector picker (placeholder for future enhancement)
+     */
+    function openSelectorPicker() {
+        alert('Element picker feature coming soon!\n\nFor now, please enter selectors manually. Use browser developer tools to inspect elements and copy their selectors.');
+    }
+    
+    /**
+     * Show message to user
+     */
+    function showMessage(message, type = 'info') {
+        if (!elements.messagesContainer) return;
+        
+        // Clear existing messages
+        clearMessages();
+        
+        const messageEl = document.createElement('div');
+        messageEl.className = `clicktally-message ${type}`;
+        messageEl.textContent = message;
+        
+        elements.messagesContainer.appendChild(messageEl);
+        
+        // Auto-remove after 5 seconds for non-error messages
+        if (type !== 'error') {
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 5000);
+        }
+        
+        // Scroll to message
+        messageEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    
+    /**
+     * Clear all messages
+     */
+    function clearMessages() {
+        if (elements.messagesContainer) {
+            elements.messagesContainer.innerHTML = '';
+        }
+    }
+    
+    // Public API
+    return {
+        init: init,
+        showAddForm: showAddForm,
+        editRule: editRule,
+        deleteRule: deleteRule,
+        showMessage: showMessage
     };
     
-    // Submit via REST API
-    const url = clickTallyAdmin.apiUrl + 'rules/manage';
-    const isUpdate = eventId && eventId !== '';
-    
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-WP-Nonce': clickTallyAdmin.nonce
-        },
-        body: JSON.stringify({
-            action: isUpdate ? 'update' : 'create',
-            rule_id: isUpdate ? eventId : undefined,
-            ...eventData
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            // Handle different error types
-            if (response.status === 403) {
-                throw new Error('Permission denied. Check your capabilities.');
-            } else if (response.status === 404) {
-                throw new Error('REST endpoint not found. Try flushing permalinks.');
-            } else {
-                throw new Error('Network response was not ok: ' + response.status);
-            }
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Show success message
-            alert(isUpdate ? clickTallyAdmin.strings.eventUpdated : clickTallyAdmin.strings.eventAdded);
-            
-            // Close modal
-            closeEventModal();
-            
-            // Refresh the page to show updated list
-            location.reload();
-        } else {
-            throw new Error(data.message || 'Unknown error');
-        }
-    })
-    .catch(error => {
-        console.error('Error saving event:', error);
-        alert(clickTallyAdmin.strings.errorGeneral);
-    })
-    .finally(() => {
-        // Restore button state
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
-    });
-}
+})();

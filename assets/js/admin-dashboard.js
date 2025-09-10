@@ -568,82 +568,67 @@
      * Export data as CSV
      */
     function clicktally_element_event_tracker_export_csv(type) {
-        let data, filename, headers;
+        const filters = clicktally_element_event_tracker_get_current_filters();
+        const params = new URLSearchParams(filters);
         
-        if (type === 'top-elements' && dashboardData.topElements) {
-            data = dashboardData.topElements;
-            filename = 'clicktally-top-elements.csv';
-            headers = ['Event Name', 'Selector Key', 'Example Page', 'Clicks', 'Percentage'];
-        } else if (type === 'top-pages' && dashboardData.topPages) {
-            data = dashboardData.topPages;
-            filename = 'clicktally-top-pages.csv';
-            headers = ['Page', 'Title', 'Clicks', 'Top Event'];
+        let url;
+        if (type === 'top-elements') {
+            url = ClickTallyElementEventTrackerAdminConfig.restUrlBackcompat + 'export/top-elements?' + params.toString();
+        } else if (type === 'top-pages') {
+            url = ClickTallyElementEventTrackerAdminConfig.restUrlBackcompat + 'export/top-pages?' + params.toString();
         } else {
-            console.error('No data available for export');
+            console.error('Unknown export type:', type);
             return;
         }
         
-        if (!data || data.length === 0) {
-            alert(ClickTallyElementEventTrackerAdminConfig.i18n.noData);
-            return;
-        }
-        
-        const csv = clicktally_element_event_tracker_convert_to_csv(data, headers, type);
-        clicktally_element_event_tracker_download_csv(csv, filename);
-    }
-    
-    /**
-     * Convert data to CSV format
-     */
-    function clicktally_element_event_tracker_convert_to_csv(data, headers, type) {
-        let csv = headers.join(',') + '\n';
-        
-        data.forEach(function(item) {
-            let row = [];
-            
-            if (type === 'top-elements') {
-                row = [
-                    '"' + (item.event_name || '').replace(/"/g, '""') + '"',
-                    '"' + (item.selector_key || item.selector_preview || '').replace(/"/g, '""') + '"',
-                    '"' + (item.example_page || '').replace(/"/g, '""') + '"',
-                    item.total_clicks || item.clicks || 0,
-                    (item.page_share ? (item.page_share * 100).toFixed(1) : (item.percentage || 0).toFixed(1)) + '%'
-                ];
-            } else if (type === 'top-pages') {
-                row = [
-                    '"' + (item.page || item.page_url || '').replace(/"/g, '""') + '"',
-                    '"' + (item.title || '').replace(/"/g, '""') + '"',
-                    item.total_clicks || item.clicks || 0,
-                    '"' + (item.top_event || '').replace(/"/g, '""') + '"'
-                ];
-            }
-            
-            csv += row.join(',') + '\n';
-        });
-        
-        return csv;
-    }
-    
-    /**
-     * Download CSV file
-     */
-    function clicktally_element_event_tracker_download_csv(csv, filename) {
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        // Create a temporary link to trigger download
         const link = document.createElement('a');
+        link.href = url;
+        link.style.display = 'none';
         
-        if (link.download !== undefined) {
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', filename);
-            link.style.visibility = 'hidden';
+        // Add nonce header for authentication
+        link.setAttribute('data-nonce', ClickTallyElementEventTrackerAdminConfig.nonce);
+        
+        // For REST API requests, we need to use fetch to include the nonce header
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-WP-Nonce': ClickTallyElementEventTrackerAdminConfig.nonce
+            }
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('Export failed: ' + response.statusText);
+            }
+            return response.blob();
+        })
+        .then(function(blob) {
+            // Create download URL and trigger download
+            const downloadUrl = URL.createObjectURL(blob);
+            link.href = downloadUrl;
+            
+            // Get filename from content-disposition header or use default
+            const filename = 'clicktally-' + type + '-' + new Date().toISOString().split('T')[0] + '.csv';
+            link.download = filename;
+            
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }
+            URL.revokeObjectURL(downloadUrl);
+            
+            // Show success message
+            clicktally_element_event_tracker_show_export_success();
+        })
+        .catch(function(error) {
+            console.error('Export error:', error);
+            clicktally_element_event_tracker_show_export_error();
+        });
     }
     
+    
     /**
+     * Utility functions
+     */
      * Show error in KPI cards
      */
     function clicktally_element_event_tracker_show_error_in_kpis() {
@@ -719,8 +704,48 @@
     }
     
     /**
-     * Utility functions
+     * Show export success message
      */
+    function clicktally_element_event_tracker_show_export_success() {
+        // Show a temporary success message
+        const message = document.createElement('div');
+        message.className = 'notice notice-success is-dismissible';
+        message.innerHTML = '<p>' + ClickTallyElementEventTrackerAdminConfig.i18n.exportSuccess + '</p>';
+        
+        const header = document.querySelector('.wrap h1');
+        if (header && header.parentNode) {
+            header.parentNode.insertBefore(message, header.nextSibling);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(function() {
+                if (message.parentNode) {
+                    message.parentNode.removeChild(message);
+                }
+            }, 3000);
+        }
+    }
+    
+    /**
+     * Show export error message
+     */
+    function clicktally_element_event_tracker_show_export_error() {
+        // Show a temporary error message
+        const message = document.createElement('div');
+        message.className = 'notice notice-error is-dismissible';
+        message.innerHTML = '<p>' + ClickTallyElementEventTrackerAdminConfig.i18n.exportError + '</p>';
+        
+        const header = document.querySelector('.wrap h1');
+        if (header && header.parentNode) {
+            header.parentNode.insertBefore(message, header.nextSibling);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(function() {
+                if (message.parentNode) {
+                    message.parentNode.removeChild(message);
+                }
+            }, 5000);
+        }
+    }
     function clicktally_element_event_tracker_format_number(num) {
         return new Intl.NumberFormat().format(num);
     }
