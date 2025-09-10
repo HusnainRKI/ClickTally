@@ -97,7 +97,10 @@ class ClickTally_Activator {
     private static function create_capabilities() {
         $admin_role = get_role('administrator');
         if ($admin_role) {
+            // Add old capability for backward compatibility
             $admin_role->add_cap('manage_clicktally');
+            // Add new capability with long prefix
+            $admin_role->add_cap('manage_clicktally_element_event_tracker');
         }
     }
     
