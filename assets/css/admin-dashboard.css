@@ -1,0 +1,379 @@
+/* ClickTally Element Event Tracker Dashboard Styles */
+
+.clicktally-dashboard-header {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.clicktally-filters {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.clicktally-filter {
+    min-width: 120px;
+}
+
+/* KPI Cards */
+.clicktally-kpi-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.clicktally-kpi-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+    transition: box-shadow 0.2s;
+}
+
+.clicktally-kpi-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.clicktally-kpi-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #50575e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.clicktally-kpi-value {
+    font-size: 28px;
+    font-weight: 600;
+    color: #1d2327;
+    line-height: 1.2;
+}
+
+.clicktally-kpi-value .clicktally-loading {
+    font-size: 14px;
+    color: #646970;
+    font-weight: normal;
+}
+
+.clicktally-kpi-value small {
+    display: block;
+    font-size: 12px;
+    font-weight: normal;
+    color: #646970;
+    margin-top: 5px;
+}
+
+.clicktally-kpi-value a {
+    color: #2271b1;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.clicktally-kpi-value a:hover {
+    text-decoration: underline;
+}
+
+/* Chart Section */
+.clicktally-chart-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.clicktally-chart-section h2 {
+    margin: 0 0 20px 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.clicktally-chart-container {
+    min-height: 300px;
+    position: relative;
+}
+
+#clicktally-line-chart {
+    width: 100%;
+    height: 300px;
+}
+
+/* Chart styles */
+.clicktally-chart-line {
+    fill: none;
+    stroke: #2271b1;
+    stroke-width: 2;
+}
+
+.clicktally-chart-dot {
+    fill: #2271b1;
+    stroke: #fff;
+    stroke-width: 2;
+}
+
+.clicktally-chart-dot:hover {
+    fill: #0a4b78;
+    r: 5;
+}
+
+.clicktally-chart-axis {
+    stroke: #dcdcde;
+    stroke-width: 1;
+}
+
+.clicktally-chart-grid {
+    stroke: #f6f7f7;
+    stroke-width: 1;
+}
+
+.clicktally-chart-text {
+    fill: #50575e;
+    font-size: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.clicktally-chart-tooltip {
+    position: absolute;
+    background: #1d2327;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 1000;
+}
+
+/* Tables */
+.clicktally-tables-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.clicktally-table-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+}
+
+.clicktally-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.clicktally-table-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.clicktally-table-wrapper {
+    overflow-x: auto;
+}
+
+.clicktally-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.clicktally-table th {
+    background: #f6f7f7;
+    border-bottom: 1px solid #c3c4c7;
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    color: #50575e;
+}
+
+.clicktally-table th[scope="col"] {
+    cursor: pointer;
+    position: relative;
+}
+
+.clicktally-table th[scope="col"]:hover {
+    background: #f0f0f1;
+}
+
+.clicktally-table th.sortable::after {
+    content: "";
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 4px solid #c3c4c7;
+}
+
+.clicktally-table th.sort-asc::after {
+    border-bottom: 4px solid #2271b1;
+    border-top: none;
+}
+
+.clicktally-table th.sort-desc::after {
+    border-top: 4px solid #2271b1;
+    border-bottom: none;
+}
+
+.clicktally-table td {
+    border-bottom: 1px solid #f0f0f1;
+    padding: 12px 8px;
+    font-size: 13px;
+    vertical-align: top;
+}
+
+.clicktally-table tbody tr:hover {
+    background: #f6f7f7;
+}
+
+.clicktally-table .event-name {
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.clicktally-table .selector-preview {
+    font-family: Consolas, Monaco, monospace;
+    background: #f6f7f7;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: #3c434a;
+}
+
+.clicktally-table .page-url {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.clicktally-table .page-url a {
+    color: #2271b1;
+    text-decoration: none;
+}
+
+.clicktally-table .page-url a:hover {
+    text-decoration: underline;
+}
+
+.clicktally-table .clicks-count {
+    font-weight: 600;
+    text-align: right;
+}
+
+.clicktally-table .percentage {
+    text-align: right;
+    color: #646970;
+}
+
+/* Loading states */
+.clicktally-loading {
+    color: #646970;
+    font-style: italic;
+}
+
+.clicktally-kpi-card.loading .clicktally-kpi-value {
+    opacity: 0.6;
+}
+
+.clicktally-table-wrapper.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Error states */
+.clicktally-error {
+    color: #d63638;
+    padding: 10px;
+    background: #fcf0f1;
+    border: 1px solid #f0a0a3;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+/* No data states */
+.clicktally-no-data {
+    text-align: center;
+    padding: 40px 20px;
+    color: #646970;
+}
+
+.clicktally-no-data .dashicons {
+    font-size: 48px;
+    opacity: 0.3;
+    margin-bottom: 10px;
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+    .clicktally-tables-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .clicktally-kpi-cards {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .clicktally-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .clicktally-filter {
+        min-width: auto;
+    }
+    
+    .clicktally-table-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    
+    .clicktally-chart-container {
+        min-height: 200px;
+    }
+    
+    #clicktally-line-chart {
+        height: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .clicktally-kpi-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .clicktally-kpi-card {
+        padding: 15px;
+    }
+    
+    .clicktally-kpi-value {
+        font-size: 24px;
+    }
+    
+    .clicktally-table th,
+    .clicktally-table td {
+        padding: 8px 6px;
+        font-size: 12px;
+    }
+}

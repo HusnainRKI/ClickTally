@@ -78,6 +78,11 @@ class ClickTally {
         require_once CLICKTALLY_PLUGIN_DIR . 'includes/class-ingest.php';
         require_once CLICKTALLY_PLUGIN_DIR . 'includes/class-rollup.php';
         require_once CLICKTALLY_PLUGIN_DIR . 'includes/class-admin.php';
+        
+        // Load new dashboard classes with long prefixes
+        require_once CLICKTALLY_PLUGIN_DIR . 'includes/class-clicktally-element-event-tracker-admin-menu.php';
+        require_once CLICKTALLY_PLUGIN_DIR . 'includes/class-clicktally-element-event-tracker-rest.php';
+        require_once CLICKTALLY_PLUGIN_DIR . 'includes/class-clicktally-element-event-tracker-capabilities.php';
     }
     
     /**
@@ -90,6 +95,10 @@ class ClickTally {
         ClickTally_REST::init();
         ClickTally_Ingest::init();
         ClickTally_Rollup::init();
+        
+        // Initialize new dashboard components with long prefixes
+        Clicktally_Element_Event_Tracker_Capabilities::clicktally_element_event_tracker_init();
+        Clicktally_Element_Event_Tracker_REST::clicktally_element_event_tracker_init();
         
         // Load text domain
         load_plugin_textdomain('clicktally', false, dirname(CLICKTALLY_PLUGIN_BASENAME) . '/languages/');
@@ -104,7 +113,12 @@ class ClickTally {
      * Add admin menu
      */
     public function admin_menu() {
-        if (current_user_can('manage_clicktally')) {
+        // Initialize new dashboard menu with long prefixes
+        if (current_user_can('manage_clicktally_element_event_tracker')) {
+            Clicktally_Element_Event_Tracker_Admin_Menu::init();
+        }
+        // Keep backward compatibility for old capability
+        elseif (current_user_can('manage_clicktally')) {
             ClickTally_Admin::init();
         }
     }
