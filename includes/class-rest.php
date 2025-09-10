@@ -41,7 +41,7 @@ class ClickTally_REST {
             'permission_callback' => array(__CLASS__, 'check_ingest_permissions')
         ));
         
-        // Admin routes (require manage_clicktally capability)
+        // Admin routes (require manage_clicktally_element_event_tracker capability)
         register_rest_route('clicktally/v1', '/stats/summary', array(
             'methods' => 'GET',
             'callback' => array(__CLASS__, 'get_stats_summary'),
@@ -100,10 +100,66 @@ class ClickTally_REST {
             'permission_callback' => array(__CLASS__, 'check_admin_permissions')
         ));
         
+        register_rest_route('clicktally/v1', '/rules/get', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'get_rule'),
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions'),
+            'args' => array(
+                'id' => array(
+                    'required' => true,
+                    'sanitize_callback' => 'absint',
+                    'validate_callback' => function($param) {
+                        return is_numeric($param) && $param > 0;
+                    }
+                )
+            )
+        ));
+        
         register_rest_route('clicktally/v1', '/test/preview', array(
             'methods' => 'POST',
             'callback' => array(__CLASS__, 'preview_rule'),
             'permission_callback' => array(__CLASS__, 'check_admin_permissions')
+        ));
+        
+        // CSV Export endpoints
+        register_rest_route('clicktally/v1', '/export/top-elements', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'export_top_elements_csv'),
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions'),
+            'args' => array(
+                'range' => array(
+                    'default' => '7d',
+                    'sanitize_callback' => 'sanitize_text_field'
+                ),
+                'device' => array(
+                    'default' => 'all',
+                    'sanitize_callback' => 'sanitize_text_field'
+                ),
+                'user_type' => array(
+                    'default' => 'all',
+                    'sanitize_callback' => 'sanitize_text_field'
+                )
+            )
+        ));
+        
+        register_rest_route('clicktally/v1', '/export/top-pages', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'export_top_pages_csv'),
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions'),
+            'args' => array(
+                'range' => array(
+                    'default' => '7d',
+                    'sanitize_callback' => 'sanitize_text_field'
+                ),
+                'device' => array(
+                    'default' => 'all',
+                    'sanitize_callback' => 'sanitize_text_field'
+                ),
+                'user_type' => array(
+                    'default' => 'all',
+                    'sanitize_callback' => 'sanitize_text_field'
+                )
+            )
         ));
     }
     
@@ -350,6 +406,20 @@ class ClickTally_REST {
     }
     
     /**
+     * Get a single rule by ID
+     */
+    public static function get_rule($request) {
+        $rule_id = $request->get_param('id');
+        
+        $rule = ClickTally_Rules::get_rule_by_id($rule_id);
+        if (!$rule) {
+            return new WP_Error('rule_not_found', 'Rule not found', array('status' => 404));
+        }
+        
+        return rest_ensure_response($rule);
+    }
+    
+    /**
      * Preview rule functionality
      */
     public static function preview_rule($request) {
@@ -368,6 +438,137 @@ class ClickTally_REST {
             'selector_type' => $selector_type,
             'selector_value' => $selector_value,
             'preview_url' => $url
+        ));
+    }
+    
+    /**
+     * Export top elements as CSV
+     */
+    public static function export_top_elements_csv($request) {
+        $range = $request->get_param('range');
+        $device = $request->get_param('device');
+        $user_type = $request->get_param('user_type');
+        
+        global $wpdb;
+        $table = $wpdb->prefix . 'ct_rollup_daily';
+        
+        $date_bounds = self::get_date_range_bounds($range);
+        $filters = self::build_filters($device, $user_type);
+        
+        // Build WHERE clause
+        $where_conditions = array("day >= %s AND day <= %s");
+        $params = array($date_bounds['start'], $date_bounds['end']);
+        
+        foreach ($filters as $condition => $value) {
+            $where_conditions[] = $condition;
+            $params[] = $value;
+        }
+        
+        $where_clause = implode(' AND ', $where_conditions);
+        
+        // Get top elements (limit to 1000 for CSV)
+        $params[] = 1000;
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT 
+                event_name,
+                selector_key,
+                SUM(clicks) as clicks,
+                COUNT(DISTINCT page_hash) as page_count,
+                (SELECT page_url FROM {$table} t2 
+                 WHERE t2.event_name = t1.event_name 
+                 AND t2.selector_key = t1.selector_key 
+                 AND {$where_clause}
+                 ORDER BY t2.clicks DESC 
+                 LIMIT 1) as example_page
+             FROM {$table} t1
+             WHERE {$where_clause}
+             GROUP BY event_name, selector_key 
+             ORDER BY clicks DESC 
+             LIMIT %d",
+            array_merge($params, $params)
+        ));
+        
+        // Generate CSV
+        $csv_data = "Event Name,Selector Key,Example Page,Clicks,Pages\n";
+        foreach ($results as $result) {
+            $csv_data .= sprintf(
+                '"%s","%s","%s",%d,%d' . "\n",
+                str_replace('"', '""', $result->event_name),
+                str_replace('"', '""', $result->selector_key),
+                str_replace('"', '""', $result->example_page ?: ''),
+                $result->clicks,
+                $result->page_count
+            );
+        }
+        
+        // Return CSV with proper headers
+        return new WP_REST_Response($csv_data, 200, array(
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="clicktally-top-elements-' . gmdate('Y-m-d') . '.csv"'
+        ));
+    }
+    
+    /**
+     * Export top pages as CSV
+     */
+    public static function export_top_pages_csv($request) {
+        $range = $request->get_param('range');
+        $device = $request->get_param('device');
+        $user_type = $request->get_param('user_type');
+        
+        global $wpdb;
+        $table = $wpdb->prefix . 'ct_rollup_daily';
+        
+        $date_bounds = self::get_date_range_bounds($range);
+        $filters = self::build_filters($device, $user_type);
+        
+        // Build WHERE clause
+        $where_conditions = array("day >= %s AND day <= %s");
+        $params = array($date_bounds['start'], $date_bounds['end']);
+        
+        foreach ($filters as $condition => $value) {
+            $where_conditions[] = $condition;
+            $params[] = $value;
+        }
+        
+        $where_clause = implode(' AND ', $where_conditions);
+        $params[] = 1000; // Limit to 1000 for CSV
+        
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT 
+                page_url,
+                SUM(clicks) as clicks,
+                (SELECT event_name FROM {$table} t2 
+                 WHERE t2.page_hash = t1.page_hash 
+                 AND {$where_clause}
+                 GROUP BY event_name 
+                 ORDER BY SUM(clicks) DESC 
+                 LIMIT 1) as top_event
+             FROM {$table} t1
+             WHERE {$where_clause}
+             GROUP BY page_hash, page_url 
+             ORDER BY clicks DESC 
+             LIMIT %d",
+            array_merge($params, $params)
+        ));
+        
+        // Generate CSV
+        $csv_data = "Page URL,Page Title,Clicks,Top Event\n";
+        foreach ($results as $result) {
+            $page_title = self::esc_title($result->page_url);
+            $csv_data .= sprintf(
+                '"%s","%s",%d,"%s"' . "\n",
+                str_replace('"', '""', $result->page_url),
+                str_replace('"', '""', $page_title),
+                $result->clicks,
+                str_replace('"', '""', $result->top_event ?: 'No events')
+            );
+        }
+        
+        // Return CSV with proper headers
+        return new WP_REST_Response($csv_data, 200, array(
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="clicktally-top-pages-' . gmdate('Y-m-d') . '.csv"'
         ));
     }
     

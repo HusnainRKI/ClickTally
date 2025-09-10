@@ -46,21 +46,21 @@ class ClickTally_Capabilities {
             'publicly_queryable' => false,
             'capability_type' => 'post',
             'capabilities' => array(
-                'edit_post' => 'manage_clicktally',
-                'read_post' => 'manage_clicktally',
-                'delete_post' => 'manage_clicktally',
-                'edit_posts' => 'manage_clicktally',
-                'edit_others_posts' => 'manage_clicktally',
-                'publish_posts' => 'manage_clicktally',
-                'read_private_posts' => 'manage_clicktally',
-                'read' => 'manage_clicktally',
-                'delete_posts' => 'manage_clicktally',
-                'delete_private_posts' => 'manage_clicktally',
-                'delete_published_posts' => 'manage_clicktally',
-                'delete_others_posts' => 'manage_clicktally',
-                'edit_private_posts' => 'manage_clicktally',
-                'edit_published_posts' => 'manage_clicktally',
-                'create_posts' => 'manage_clicktally'
+                'edit_post' => 'manage_clicktally_element_event_tracker',
+                'read_post' => 'manage_clicktally_element_event_tracker',
+                'delete_post' => 'manage_clicktally_element_event_tracker',
+                'edit_posts' => 'manage_clicktally_element_event_tracker',
+                'edit_others_posts' => 'manage_clicktally_element_event_tracker',
+                'publish_posts' => 'manage_clicktally_element_event_tracker',
+                'read_private_posts' => 'manage_clicktally_element_event_tracker',
+                'read' => 'manage_clicktally_element_event_tracker',
+                'delete_posts' => 'manage_clicktally_element_event_tracker',
+                'delete_private_posts' => 'manage_clicktally_element_event_tracker',
+                'delete_published_posts' => 'manage_clicktally_element_event_tracker',
+                'delete_others_posts' => 'manage_clicktally_element_event_tracker',
+                'edit_private_posts' => 'manage_clicktally_element_event_tracker',
+                'edit_published_posts' => 'manage_clicktally_element_event_tracker',
+                'create_posts' => 'manage_clicktally_element_event_tracker'
             ),
             'supports' => array('title', 'revisions'),
             'rewrite' => false,
@@ -72,14 +72,14 @@ class ClickTally_Capabilities {
      * Check if current user can manage ClickTally
      */
     public static function can_manage() {
-        return current_user_can('manage_clicktally');
+        return current_user_can('manage_clicktally_element_event_tracker');
     }
     
     /**
      * Check if current user can view stats
      */
     public static function can_view_stats() {
-        return current_user_can('manage_clicktally');
+        return current_user_can('manage_clicktally_element_event_tracker');
     }
     
     /**
@@ -90,7 +90,7 @@ class ClickTally_Capabilities {
         $wp_roles = wp_roles();
         
         foreach ($wp_roles->roles as $role_name => $role_info) {
-            if (isset($role_info['capabilities']['manage_clicktally']) && $role_info['capabilities']['manage_clicktally']) {
+            if (isset($role_info['capabilities']['manage_clicktally_element_event_tracker']) && $role_info['capabilities']['manage_clicktally_element_event_tracker']) {
                 $roles[] = $role_name;
             }
         }
@@ -104,7 +104,7 @@ class ClickTally_Capabilities {
     public static function add_capability_to_role($role_name) {
         $role = get_role($role_name);
         if ($role) {
-            $role->add_cap('manage_clicktally');
+            $role->add_cap('manage_clicktally_element_event_tracker');
         }
     }
     
@@ -114,7 +114,7 @@ class ClickTally_Capabilities {
     public static function remove_capability_from_role($role_name) {
         $role = get_role($role_name);
         if ($role) {
-            $role->remove_cap('manage_clicktally');
+            $role->remove_cap('manage_clicktally_element_event_tracker');
         }
     }
 }

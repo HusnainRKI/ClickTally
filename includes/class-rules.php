@@ -164,6 +164,19 @@ class ClickTally_Rules {
     }
     
     /**
+     * Get a single rule by ID
+     */
+    public static function get_rule_by_id($rule_id) {
+        $post = get_post($rule_id);
+        
+        if (!$post || $post->post_type !== 'ct_rule') {
+            return false;
+        }
+        
+        return self::format_rule($post);
+    }
+    
+    /**
      * Format rule data
      */
     private static function format_rule($post) {
