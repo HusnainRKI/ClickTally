@@ -384,7 +384,7 @@ class ClickTally_REST {
     private static function validate_ingest_request($request) {
         // Check nonce
         $nonce = $request->get_header('X-WP-Nonce');
-        if (!wp_verify_nonce($nonce, 'clicktally_track')) {
+        if (!wp_verify_nonce($nonce, 'clicktally_element_event_tracker_track')) {
             return false;
         }
         

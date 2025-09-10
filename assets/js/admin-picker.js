@@ -13,8 +13,8 @@
         },
         
         bindEvents: function() {
-            // Rule form submission
-            $('#rule-form').on('submit', this.handleRuleSubmission);
+            // Event form submission
+            $('#event-form').on('submit', this.handleRuleSubmission);
             
             // Modal close events
             $(document).on('keydown', function(e) {
@@ -59,14 +59,14 @@
                 return;
             }
             
-            var isEdit = ruleData.rule_id && ruleData.rule_id !== '';
+            var isEdit = ruleData.event_id && ruleData.event_id !== '';
             var action = isEdit ? 'update' : 'create';
             
             ClickTallyAdmin.saveRule(action, ruleData);
         },
         
         saveRule: function(action, ruleData) {
-            var $form = $('#rule-form');
+            var $form = $('#event-form');
             var $submitBtn = $form.find('button[type="submit"]');
             
             // Show loading state
@@ -269,30 +269,30 @@
     };
     
     // Global functions for inline event handlers
-    window.openRuleModal = function(ruleId) {
-        $('#rule-modal').show();
+    window.openEventModal = function(eventId) {
+        $('#event-modal').show();
         
-        if (ruleId) {
-            // Load rule data for editing
-            // This would make an AJAX call to get the rule data
-            console.log('Loading rule for editing:', ruleId);
+        if (eventId) {
+            // Load event data for editing
+            // This would make an AJAX call to get the event data
+            console.log('Loading event for editing:', eventId);
         } else {
-            // Reset form for new rule
-            $('#rule-form')[0].reset();
-            $('#rule-id').val('');
+            // Reset form for new event
+            $('#event-form')[0].reset();
+            $('#event-id').val('');
         }
     };
     
-    window.closeRuleModal = function() {
+    window.closeEventModal = function() {
         ClickTallyAdmin.closeModal();
     };
     
-    window.editRule = function(ruleId) {
-        window.openRuleModal(ruleId);
+    window.editEvent = function(eventId) {
+        window.openEventModal(eventId);
     };
     
-    window.deleteRule = function(ruleId) {
-        ClickTallyAdmin.deleteRule(ruleId);
+    window.deleteEvent = function(eventId) {
+        ClickTallyAdmin.deleteRule(eventId);
     };
     
     window.openDOMPicker = function() {
