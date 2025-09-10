@@ -20,6 +20,11 @@ class ClickTally_Activator {
         self::set_default_settings();
         self::create_auto_track_rules();
         
+        // Initialize new capabilities system
+        if (class_exists('Clicktally_Element_Event_Tracker_Capabilities')) {
+            Clicktally_Element_Event_Tracker_Capabilities::clicktally_element_event_tracker_create_capabilities();
+        }
+        
         // Flush rewrite rules
         flush_rewrite_rules();
     }
@@ -30,6 +35,11 @@ class ClickTally_Activator {
     public static function deactivate() {
         // Clear scheduled events
         wp_clear_scheduled_hook('clicktally_rollup_daily');
+        
+        // Remove new capabilities if needed (optional, commented out to preserve user access)
+        // if (class_exists('Clicktally_Element_Event_Tracker_Capabilities')) {
+        //     Clicktally_Element_Event_Tracker_Capabilities::clicktally_element_event_tracker_remove_capabilities();
+        // }
         
         // Flush rewrite rules
         flush_rewrite_rules();
