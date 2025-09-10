@@ -15,7 +15,10 @@ class Clicktally_Element_Event_Tracker_Admin_Menu {
      * Initialize admin menu
      */
     public static function init() {
-        add_action('admin_menu', array(__CLASS__, 'clicktally_element_event_tracker_add_admin_menu'));
+        // Add the menu immediately since we're already in the admin_menu hook
+        self::clicktally_element_event_tracker_add_admin_menu();
+        
+        // Still need to enqueue scripts for the admin pages
         add_action('admin_enqueue_scripts', array(__CLASS__, 'clicktally_element_event_tracker_enqueue_admin_scripts'));
     }
     
@@ -32,8 +35,8 @@ class Clicktally_Element_Event_Tracker_Admin_Menu {
             $capability,
             'clicktally-element-event-tracker',
             array(__CLASS__, 'clicktally_element_event_tracker_render_dashboard_page'),
-            'dashicons-chart-line',
-            60
+            'dashicons-chart-area',
+            26
         );
         
         // Dashboard submenu (same as parent, will be default)
