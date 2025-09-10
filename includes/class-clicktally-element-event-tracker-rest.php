@@ -195,10 +195,17 @@ class Clicktally_Element_Event_Tracker_REST {
         
         // Get events today
         $today = gmdate('Y-m-d');
-        $today_params = array_merge(array($today, $today), array_slice($params, 2));
+        $today_where_conditions = array("day = %s");
+        $today_params = array($today);
+        
+        foreach ($filters as $condition => $value) {
+            $today_where_conditions[] = $condition;
+            $today_params[] = $value;
+        }
+        
+        $today_where_clause = implode(' AND ', $today_where_conditions);
         $events_today = $wpdb->get_var($wpdb->prepare(
-            "SELECT SUM(clicks) FROM {$table} WHERE day = %s AND day = %s" . 
-            (count($filters) > 0 ? ' AND ' . implode(' AND ', array_keys($filters)) : ''),
+            "SELECT SUM(clicks) FROM {$table} WHERE {$today_where_clause}",
             $today_params
         ));
         
@@ -215,14 +222,11 @@ class Clicktally_Element_Event_Tracker_REST {
         }
         
         return rest_ensure_response(array(
-            'success' => true,
-            'data' => array(
-                'total_clicks' => (int) ($total_clicks ?: 0),
-                'unique_elements' => (int) ($unique_elements ?: 0),
-                'top_page' => $top_page,
-                'events_today' => (int) ($events_today ?: 0),
-                'timeseries' => $timeseries
-            )
+            'total_clicks' => (int) ($total_clicks ?: 0),
+            'unique_elements' => (int) ($unique_elements ?: 0),
+            'top_page' => $top_page,
+            'events_today' => (int) ($events_today ?: 0),
+            'timeseries' => $timeseries
         ));
     }
     
@@ -295,10 +299,7 @@ class Clicktally_Element_Event_Tracker_REST {
             );
         }
         
-        return rest_ensure_response(array(
-            'success' => true,
-            'data' => $elements
-        ));
+        return rest_ensure_response($elements);
     }
     
     /**
@@ -357,10 +358,7 @@ class Clicktally_Element_Event_Tracker_REST {
             );
         }
         
-        return rest_ensure_response(array(
-            'success' => true,
-            'data' => $pages
-        ));
+        return rest_ensure_response($pages);
     }
     
     /**

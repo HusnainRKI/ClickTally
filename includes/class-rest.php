@@ -164,29 +164,22 @@ class ClickTally_REST {
         $device = $request->get_param('device');
         $user_type = $request->get_param('user_type');
         
+        $date_bounds = self::get_date_range_bounds($range);
+        $filters = self::build_filters($device, $user_type);
+        
         global $wpdb;
         $table = $wpdb->prefix . 'ct_rollup_daily';
         
-        // Calculate date range
-        $days = $range === '30d' ? 30 : 7;
-        $start_date = date('Y-m-d', strtotime("-{$days} days"));
+        // Build base WHERE clause
+        $where_conditions = array("day >= %s AND day <= %s");
+        $params = array($date_bounds['start'], $date_bounds['end']);
         
-        // Build WHERE clause
-        $where = array("day >= %s");
-        $params = array($start_date);
-        
-        if ($device !== 'all') {
-            $where[] = "device = %s";
-            $params[] = $device;
+        foreach ($filters as $condition => $value) {
+            $where_conditions[] = $condition;
+            $params[] = $value;
         }
         
-        if ($user_type === 'guest') {
-            $where[] = "is_logged_in = 0";
-        } elseif ($user_type === 'logged_in') {
-            $where[] = "is_logged_in = 1";
-        }
-        
-        $where_clause = implode(' AND ', $where);
+        $where_clause = implode(' AND ', $where_conditions);
         
         // Get total clicks
         $total_clicks = $wpdb->get_var($wpdb->prepare(
@@ -194,30 +187,57 @@ class ClickTally_REST {
             $params
         ));
         
-        // Get unique elements count
+        // Get unique elements
         $unique_elements = $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(DISTINCT event_name) FROM {$table} WHERE {$where_clause}",
             $params
         ));
         
         // Get top page
-        $top_page = $wpdb->get_row($wpdb->prepare(
+        $top_page_result = $wpdb->get_row($wpdb->prepare(
             "SELECT page_url, SUM(clicks) as total_clicks 
              FROM {$table} 
              WHERE {$where_clause}
-             GROUP BY page_hash 
+             GROUP BY page_hash, page_url 
              ORDER BY total_clicks DESC 
              LIMIT 1",
             $params
         ));
         
+        // Get events today
+        $today = gmdate('Y-m-d');
+        $today_where_conditions = array("day = %s");
+        $today_params = array($today);
+        
+        foreach ($filters as $condition => $value) {
+            $today_where_conditions[] = $condition;
+            $today_params[] = $value;
+        }
+        
+        $today_where_clause = implode(' AND ', $today_where_conditions);
+        $events_today = $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(clicks) FROM {$table} WHERE {$today_where_clause}",
+            $today_params
+        ));
+        
+        // Get timeseries data
+        $timeseries = self::get_timeseries_data($date_bounds, $filters);
+        
+        $top_page = null;
+        if ($top_page_result) {
+            $top_page = array(
+                'url' => $top_page_result->page_url,
+                'title' => self::esc_title($top_page_result->page_url),
+                'clicks' => (int) $top_page_result->total_clicks
+            );
+        }
+        
         return rest_ensure_response(array(
-            'total_clicks' => (int) $total_clicks,
-            'unique_elements' => (int) $unique_elements,
-            'top_page' => $top_page ? array(
-                'url' => $top_page->page_url,
-                'clicks' => (int) $top_page->total_clicks
-            ) : null,
+            'total_clicks' => (int) ($total_clicks ?: 0),
+            'unique_elements' => (int) ($unique_elements ?: 0),
+            'top_page' => $top_page,
+            'events_today' => (int) ($events_today ?: 0),
+            'timeseries' => $timeseries,
             'range' => $range,
             'filters' => array(
                 'device' => $device,
@@ -393,5 +413,129 @@ class ClickTally_REST {
         }
         
         return true;
+    }
+    
+    /**
+     * Get date range bounds from range parameter
+     */
+    private static function get_date_range_bounds($range) {
+        $end_date = gmdate('Y-m-d');
+        
+        switch ($range) {
+            case '30d':
+                $days = 30;
+                break;
+            case '90d':
+                $days = 90;
+                break;
+            case '7d':
+            default:
+                $days = 7;
+                break;
+        }
+        
+        $start_date = gmdate('Y-m-d', strtotime("-{$days} days"));
+        
+        return array(
+            'start' => $start_date,
+            'end' => $end_date
+        );
+    }
+    
+    /**
+     * Build filters array from device and user type
+     */
+    private static function build_filters($device, $user_type) {
+        $filters = array();
+        
+        if ($device && $device !== 'all') {
+            $filters['device = %s'] = $device;
+        }
+        
+        if ($user_type && $user_type !== 'all') {
+            if ($user_type === 'guest') {
+                $filters['is_logged_in = %d'] = 0;
+            } elseif ($user_type === 'logged_in') {
+                $filters['is_logged_in = %d'] = 1;
+            }
+        }
+        
+        return $filters;
+    }
+    
+    /**
+     * Get timeseries data for chart
+     */
+    private static function get_timeseries_data($date_bounds, $filters) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'ct_rollup_daily';
+        
+        // Build WHERE clause
+        $where_conditions = array("day >= %s AND day <= %s");
+        $params = array($date_bounds['start'], $date_bounds['end']);
+        
+        foreach ($filters as $condition => $value) {
+            $where_conditions[] = $condition;
+            $params[] = $value;
+        }
+        
+        $where_clause = implode(' AND ', $where_conditions);
+        
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT day, SUM(clicks) as clicks 
+             FROM {$table} 
+             WHERE {$where_clause}
+             GROUP BY day 
+             ORDER BY day ASC",
+            $params
+        ));
+        
+        // Fill in missing days with zero values
+        $timeseries = array();
+        $current_date = new DateTime($date_bounds['start']);
+        $end_date = new DateTime($date_bounds['end']);
+        
+        // Create lookup array for existing data
+        $data_lookup = array();
+        foreach ($results as $result) {
+            $data_lookup[$result->day] = (int) $result->clicks;
+        }
+        
+        // Generate complete timeseries
+        while ($current_date <= $end_date) {
+            $day_key = $current_date->format('Y-m-d');
+            $timeseries[] = array(
+                'day' => $day_key,
+                'clicks' => isset($data_lookup[$day_key]) ? $data_lookup[$day_key] : 0
+            );
+            $current_date->add(new DateInterval('P1D'));
+        }
+        
+        return $timeseries;
+    }
+    
+    /**
+     * Escape and format page title
+     */
+    private static function esc_title($url) {
+        if (empty($url)) {
+            return __('Unknown Page', 'clicktally');
+        }
+        
+        // Extract page title from URL
+        $path = parse_url($url, PHP_URL_PATH);
+        if ($path === '/' || empty($path)) {
+            return __('Home', 'clicktally');
+        }
+        
+        $segments = array_filter(explode('/', trim($path, '/')));
+        if (empty($segments)) {
+            return __('Home', 'clicktally');
+        }
+        
+        $title = end($segments);
+        $title = ucwords(str_replace(array('-', '_'), ' ', $title));
+        
+        return esc_html($title);
     }
 }

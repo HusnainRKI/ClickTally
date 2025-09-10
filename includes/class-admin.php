@@ -51,8 +51,8 @@ class ClickTally_Admin {
         
         add_submenu_page(
             'clicktally',
-            __('Tracking Rules', 'clicktally'),
-            __('Tracking Rules', 'clicktally'),
+            __('Event Tracking Rules', 'clicktally'),
+            __('Event Tracking Rules', 'clicktally'),
             $capability,
             'clicktally-rules',
             array(__CLASS__, 'render_rules_page')
@@ -107,11 +107,11 @@ class ClickTally_Admin {
                 'nonce' => wp_create_nonce('clicktally_admin'),
                 'apiUrl' => rest_url('clicktally/v1/'),
                 'strings' => array(
-                    'confirmDelete' => __('Are you sure you want to delete this rule?', 'clicktally'),
+                    'confirmDelete' => __('Are you sure you want to delete this event?', 'clicktally'),
                     'errorGeneral' => __('An error occurred. Please try again.', 'clicktally'),
-                    'ruleAdded' => __('Rule added successfully.', 'clicktally'),
-                    'ruleUpdated' => __('Rule updated successfully.', 'clicktally'),
-                    'ruleDeleted' => __('Rule deleted successfully.', 'clicktally'),
+                    'eventAdded' => __('Event added successfully.', 'clicktally'),
+                    'eventUpdated' => __('Event updated successfully.', 'clicktally'),
+                    'eventDeleted' => __('Event deleted successfully.', 'clicktally'),
                 )
             ));
         } elseif (strpos($hook, 'clicktally-test') !== false) {
@@ -237,12 +237,12 @@ class ClickTally_Admin {
             
             <div class="clicktally-rules-page">
                 <div class="clicktally-rules-header">
-                    <button type="button" class="button button-primary" data-action="add-rule"><?php _e('Add Rule', 'clicktally'); ?></button>
+                    <button type="button" class="button button-primary" data-action="add-event"><?php _e('Add Event', 'clicktally'); ?></button>
                 </div>
                 
                 <div class="clicktally-rules-list">
                     <?php if (empty($rules)): ?>
-                        <p><?php _e('No rules configured yet. Click "Add Rule" to get started.', 'clicktally'); ?></p>
+                        <p><?php _e('No events configured yet. Click "Add Event" to get started.', 'clicktally'); ?></p>
                     <?php else: ?>
                         <table class="wp-list-table widefat fixed striped">
                             <thead>
@@ -284,16 +284,16 @@ class ClickTally_Admin {
                 </div>
             </div>
             
-            <!-- Rule Modal -->
-            <div id="rule-modal" class="clicktally-modal" style="display: none;">
+            <!-- Event Modal -->
+            <div id="event-modal" class="clicktally-modal" style="display: none;">
                 <div class="clicktally-modal-content">
                     <div class="clicktally-modal-header">
-                        <h2><?php _e('Add/Edit Tracking Rule', 'clicktally'); ?></h2>
+                        <h2><?php _e('Add/Edit Tracking Event', 'clicktally'); ?></h2>
                         <button type="button" class="clicktally-modal-close" data-action="close-modal">&times;</button>
                     </div>
                     <div class="clicktally-modal-body">
-                        <form id="rule-form">
-                            <input type="hidden" id="rule-id" name="rule_id" value="">
+                        <form id="event-form">
+                            <input type="hidden" id="event-id" name="event_id" value="">
                             
                             <div class="clicktally-form-row">
                                 <label for="selector-type"><?php _e('Selector Type', 'clicktally'); ?></label>
@@ -356,7 +356,7 @@ class ClickTally_Admin {
                             
                             <div class="clicktally-modal-footer">
                                 <button type="button" class="button" data-action="close-modal"><?php _e('Cancel', 'clicktally'); ?></button>
-                                <button type="submit" class="button button-primary"><?php _e('Save Rule', 'clicktally'); ?></button>
+                                <button type="submit" class="button button-primary"><?php _e('Save Event', 'clicktally'); ?></button>
                             </div>
                         </form>
                     </div>
@@ -716,7 +716,7 @@ class ClickTally_Admin {
     }
     
     /**
-     * AJAX handler for managing rules
+     * AJAX handler for managing events
      */
     public static function ajax_manage_rule() {
         // Verify nonce
@@ -730,7 +730,7 @@ class ClickTally_Admin {
             wp_die(__('Insufficient permissions', 'clicktally'), 403);
         }
         
-        // TODO: Implement rule management
+        // TODO: Implement event management
         wp_send_json_success();
     }
     

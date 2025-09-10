@@ -1,49 +1,49 @@
 /**
- * ClickTally Admin Rules JavaScript
- * For managing tracking rules
+ * ClickTally Admin Event Rules JavaScript
+ * For managing tracking events
  */
 
 document.addEventListener('DOMContentLoaded', function() {
     'use strict';
     
-    // Set up rule form handling
-    const ruleForm = document.getElementById('rule-form');
-    if (ruleForm) {
-        ruleForm.addEventListener('submit', handleRuleFormSubmit);
+    // Set up event form handling
+    const eventForm = document.getElementById('event-form');
+    if (eventForm) {
+        eventForm.addEventListener('submit', handleEventFormSubmit);
     }
     
     // Remove inline onclick handlers and replace with proper event listeners
-    setupRuleButtonHandlers();
+    setupEventButtonHandlers();
 });
 
-function setupRuleButtonHandlers() {
-    // Add Rule button
-    const addRuleBtn = document.querySelector('button[data-action="add-rule"]');
-    if (addRuleBtn) {
-        addRuleBtn.addEventListener('click', function() {
-            openRuleModal();
+function setupEventButtonHandlers() {
+    // Add Event button
+    const addEventBtn = document.querySelector('button[data-action="add-event"]');
+    if (addEventBtn) {
+        addEventBtn.addEventListener('click', function() {
+            openEventModal();
         });
     }
     
     // Edit/Delete buttons
     document.querySelectorAll('button[data-rule-id]').forEach(function(btn) {
-        const ruleId = btn.getAttribute('data-rule-id');
+        const eventId = btn.getAttribute('data-rule-id');
         const action = btn.getAttribute('data-action');
         
         if (action === 'edit') {
             btn.addEventListener('click', function() {
-                editRule(ruleId);
+                editEvent(eventId);
             });
         } else if (action === 'delete') {
             btn.addEventListener('click', function() {
-                deleteRule(ruleId);
+                deleteEvent(eventId);
             });
         }
     });
     
     // Modal close buttons
     document.querySelectorAll('button[data-action="close-modal"], .clicktally-modal-close').forEach(function(btn) {
-        btn.addEventListener('click', closeRuleModal);
+        btn.addEventListener('click', closeEventModal);
     });
     
     // DOM picker button
@@ -53,29 +53,29 @@ function setupRuleButtonHandlers() {
     }
 }
 
-function openRuleModal(ruleId) {
-    const modal = document.getElementById('rule-modal');
+function openEventModal(eventId) {
+    const modal = document.getElementById('event-modal');
     if (modal) {
         modal.style.display = 'block';
-        if (ruleId) {
-            // Load rule data for editing
-            loadRuleData(ruleId);
+        if (eventId) {
+            // Load event data for editing
+            loadEventData(eventId);
         } else {
-            // Reset form for new rule
-            const form = document.getElementById('rule-form');
+            // Reset form for new event
+            const form = document.getElementById('event-form');
             if (form) {
                 form.reset();
             }
-            const ruleIdField = document.getElementById('rule-id');
-            if (ruleIdField) {
-                ruleIdField.value = '';
+            const eventIdField = document.getElementById('event-id');
+            if (eventIdField) {
+                eventIdField.value = '';
             }
         }
     }
 }
 
-function closeRuleModal() {
-    const modal = document.getElementById('rule-modal');
+function closeEventModal() {
+    const modal = document.getElementById('event-modal');
     if (modal) {
         modal.style.display = 'none';
     }
@@ -86,24 +86,24 @@ function openDOMPicker() {
     alert('DOM picker functionality will be implemented in a future update.');
 }
 
-function loadRuleData(ruleId) {
-    // TODO: Load rule data via AJAX
-    console.log('Loading rule data for ID:', ruleId);
+function loadEventData(eventId) {
+    // TODO: Load event data via AJAX
+    console.log('Loading event data for ID:', eventId);
 }
 
-function editRule(ruleId) {
-    openRuleModal(ruleId);
+function editEvent(eventId) {
+    openEventModal(eventId);
 }
 
-function deleteRule(ruleId) {
+function deleteEvent(eventId) {
     if (confirm(clickTallyAdmin.strings.confirmDelete)) {
-        // TODO: Implement rule deletion
-        console.log('Deleting rule ID:', ruleId);
+        // TODO: Implement event deletion
+        console.log('Deleting event ID:', eventId);
     }
 }
 
-function handleRuleFormSubmit(e) {
+function handleEventFormSubmit(e) {
     e.preventDefault();
     // TODO: Implement form submission
-    console.log('Rule form submitted');
+    console.log('Event form submitted');
 }

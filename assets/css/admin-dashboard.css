@@ -309,6 +309,16 @@
     margin: 10px 0;
 }
 
+.clicktally-permission-error {
+    color: #b32d2e;
+    padding: 10px;
+    background: #f0f6fc;
+    border: 1px solid #c7d2fe;
+    border-radius: 4px;
+    margin: 10px 0;
+    font-style: italic;
+}
+
 /* No data states */
 .clicktally-no-data {
     text-align: center;

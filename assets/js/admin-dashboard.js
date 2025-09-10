@@ -157,7 +157,12 @@
         })
         .then(function(response) {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                // Handle different error types
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error('PERMISSION_ERROR');
+                } else {
+                    throw new Error('NETWORK_ERROR');
+                }
             }
             return response.json();
         })
@@ -168,7 +173,11 @@
         })
         .catch(function(error) {
             console.error('Error fetching summary data:', error);
-            clicktally_element_event_tracker_show_error_in_kpis();
+            if (error.message === 'PERMISSION_ERROR') {
+                clicktally_element_event_tracker_show_permission_error_in_kpis();
+            } else {
+                clicktally_element_event_tracker_show_error_in_kpis();
+            }
         });
     }
     
@@ -188,7 +197,11 @@
         })
         .then(function(response) {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error('PERMISSION_ERROR');
+                } else {
+                    throw new Error('NETWORK_ERROR');
+                }
             }
             return response.json();
         })
@@ -198,7 +211,11 @@
         })
         .catch(function(error) {
             console.error('Error fetching top elements data:', error);
-            clicktally_element_event_tracker_show_error_in_table('top-elements-table');
+            if (error.message === 'PERMISSION_ERROR') {
+                clicktally_element_event_tracker_show_permission_error_in_table('top-elements-table');
+            } else {
+                clicktally_element_event_tracker_show_error_in_table('top-elements-table');
+            }
         });
     }
     
@@ -218,7 +235,11 @@
         })
         .then(function(response) {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error('PERMISSION_ERROR');
+                } else {
+                    throw new Error('NETWORK_ERROR');
+                }
             }
             return response.json();
         })
@@ -228,7 +249,11 @@
         })
         .catch(function(error) {
             console.error('Error fetching top pages data:', error);
-            clicktally_element_event_tracker_show_error_in_table('top-pages-table');
+            if (error.message === 'PERMISSION_ERROR') {
+                clicktally_element_event_tracker_show_permission_error_in_table('top-pages-table');
+            } else {
+                clicktally_element_event_tracker_show_error_in_table('top-pages-table');
+            }
         });
     }
     
@@ -621,6 +646,19 @@
     }
     
     /**
+     * Show permission error in KPI cards
+     */
+    function clicktally_element_event_tracker_show_permission_error_in_kpis() {
+        const kpiElements = ['total-clicks', 'unique-elements', 'top-page', 'events-today'];
+        kpiElements.forEach(function(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.innerHTML = '<span class="clicktally-permission-error">Access denied</span>';
+            }
+        });
+    }
+    
+    /**
      * Show error in table
      */
     function clicktally_element_event_tracker_show_error_in_table(tableId) {
@@ -629,6 +667,17 @@
             container.classList.remove('loading');
             container.innerHTML = '<div class="clicktally-error">' + 
                 ClickTallyElementEventTrackerAdminConfig.i18n.error + '</div>';
+        }
+    }
+    
+    /**
+     * Show permission error in table
+     */
+    function clicktally_element_event_tracker_show_permission_error_in_table(tableId) {
+        const container = document.getElementById(tableId);
+        if (container) {
+            container.classList.remove('loading');
+            container.innerHTML = '<div class="clicktally-permission-error">Access denied</div>';
         }
     }
     
