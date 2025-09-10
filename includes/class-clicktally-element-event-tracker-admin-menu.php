@@ -49,11 +49,11 @@ class Clicktally_Element_Event_Tracker_Admin_Menu {
             array(__CLASS__, 'clicktally_element_event_tracker_render_dashboard_page')
         );
         
-        // Tracking Rules submenu
+        // Event Tracking Rules submenu
         add_submenu_page(
             'clicktally-element-event-tracker',
-            __('Tracking Rules', 'clicktally'),
-            __('Tracking Rules', 'clicktally'),
+            __('Event Tracking Rules', 'clicktally'),
+            __('Event Tracking Rules', 'clicktally'),
             $capability,
             'clicktally-element-event-tracker-rules',
             array(__CLASS__, 'clicktally_element_event_tracker_render_rules_page')

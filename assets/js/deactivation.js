@@ -8,7 +8,7 @@ jQuery(document).ready(function($) {
     let selectedOption = '';
     
     // Intercept deactivation link click
-    $('tr[data-slug="' + clickTallyDeactivation.pluginSlug + '"] .deactivate a').on('click', function(e) {
+    $('tr[data-slug="' + clickTallyElementEventTrackerDeactivation.pluginSlug + '"] .deactivate a').on('click', function(e) {
         e.preventDefault();
         deactivationUrl = $(this).attr('href');
         showDeactivationModal();
@@ -19,36 +19,36 @@ jQuery(document).ready(function($) {
             <div class="clicktally-deactivation-modal" id="clicktally-deactivation-modal">
                 <div class="clicktally-deactivation-content">
                     <div class="clicktally-deactivation-header">
-                        <h2>${clickTallyDeactivation.i18n.title}</h2>
+                        <h2>${clickTallyElementEventTrackerDeactivation.i18n.title}</h2>
                     </div>
                     <div class="clicktally-deactivation-body">
-                        <p>${clickTallyDeactivation.i18n.message}</p>
+                        <p>${clickTallyElementEventTrackerDeactivation.i18n.message}</p>
                         <div class="clicktally-deactivation-options">
                             <div class="clicktally-deactivation-option" data-action="keep_data">
                                 <label>
                                     <input type="radio" name="deactivation_action" value="keep_data" style="margin-right: 10px;">
-                                    <strong>${clickTallyDeactivation.i18n.keepData}</strong>
+                                    <strong>${clickTallyElementEventTrackerDeactivation.i18n.keepData}</strong>
                                     <br><small>Your analytics data will be preserved for future use.</small>
                                 </label>
                             </div>
                             <div class="clicktally-deactivation-option" data-action="delete_data">
                                 <label>
                                     <input type="radio" name="deactivation_action" value="delete_data" style="margin-right: 10px;">
-                                    <strong>${clickTallyDeactivation.i18n.deleteData}</strong>
+                                    <strong>${clickTallyElementEventTrackerDeactivation.i18n.deleteData}</strong>
                                     <br><small>All tracking data, rules, and settings will be permanently deleted.</small>
                                 </label>
                             </div>
                         </div>
                         <div class="clicktally-deactivation-warning" id="delete-warning" style="display: none;">
-                            ⚠️ ${clickTallyDeactivation.i18n.warning}
+                            ⚠️ ${clickTallyElementEventTrackerDeactivation.i18n.warning}
                         </div>
                     </div>
                     <div class="clicktally-deactivation-footer">
                         <button type="button" class="button" id="clicktally-cancel-deactivation">
-                            ${clickTallyDeactivation.i18n.cancel}
+                            ${clickTallyElementEventTrackerDeactivation.i18n.cancel}
                         </button>
                         <button type="button" class="button button-primary" id="clicktally-proceed-deactivation" disabled>
-                            ${clickTallyDeactivation.i18n.proceed}
+                            ${clickTallyElementEventTrackerDeactivation.i18n.proceed}
                         </button>
                     </div>
                 </div>
@@ -104,12 +104,12 @@ jQuery(document).ready(function($) {
             
             // Send preference to server
             $.ajax({
-                url: clickTallyDeactivation.ajaxUrl,
+                url: clickTallyElementEventTrackerDeactivation.ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'clicktally_deactivation_feedback',
                     action_type: selectedOption,
-                    nonce: clickTallyDeactivation.nonce
+                    nonce: clickTallyElementEventTrackerDeactivation.nonce
                 },
                 success: function(response) {
                     if (response.success) {
@@ -118,12 +118,12 @@ jQuery(document).ready(function($) {
                         window.location.href = deactivationUrl;
                     } else {
                         alert('Error: ' + (response.data?.message || 'Unknown error occurred'));
-                        $button.prop('disabled', false).text(clickTallyDeactivation.i18n.proceed);
+                        $button.prop('disabled', false).text(clickTallyElementEventTrackerDeactivation.i18n.proceed);
                     }
                 },
                 error: function() {
                     alert('Error: Failed to save preference');
-                    $button.prop('disabled', false).text(clickTallyDeactivation.i18n.proceed);
+                    $button.prop('disabled', false).text(clickTallyElementEventTrackerDeactivation.i18n.proceed);
                 }
             });
         });
