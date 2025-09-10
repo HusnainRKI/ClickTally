@@ -355,7 +355,7 @@ class ClickTally_REST {
      * Check admin permissions
      */
     public static function check_admin_permissions() {
-        return current_user_can('manage_clicktally');
+        return current_user_can('manage_clicktally_element_event_tracker') || current_user_can('manage_clicktally');
     }
     
     /**
