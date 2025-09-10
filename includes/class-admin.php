@@ -26,7 +26,7 @@ class ClickTally_Admin {
      * Add admin menu
      */
     public static function add_admin_menu() {
-        $capability = 'manage_clicktally';
+        $capability = 'manage_clicktally_element_event_tracker';
         
         // Main menu
         add_menu_page(
@@ -104,7 +104,7 @@ class ClickTally_Admin {
             );
             wp_localize_script('clicktally-element-event-tracker-admin-rules-script', 'clickTallyAdmin', array(
                 'ajaxUrl' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('clicktally_admin'),
+                'nonce' => wp_create_nonce('clicktally_element_event_tracker_admin'),
                 'apiUrl' => rest_url('clicktally/v1/'),
                 'strings' => array(
                     'confirmDelete' => __('Are you sure you want to delete this event?', 'clicktally'),
@@ -134,7 +134,7 @@ class ClickTally_Admin {
             );
             wp_localize_script('clicktally-element-event-tracker-admin-legacy-script', 'clickTallyAdmin', array(
                 'ajaxUrl' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('clicktally_admin'),
+                'nonce' => wp_create_nonce('clicktally_element_event_tracker_admin'),
                 'apiUrl' => rest_url('clicktally/v1/'),
                 'strings' => array(
                     'confirmDelete' => __('Are you sure you want to delete this rule?', 'clicktally'),
@@ -495,8 +495,8 @@ class ClickTally_Admin {
             wp_die(__('Security check failed', 'clicktally'));
         }
         
-        // Check capabilities
-        if (!current_user_can('manage_clicktally_element_event_tracker') && !current_user_can('manage_clicktally')) {
+        // Check capabilities - standardized capability
+        if (!current_user_can('manage_clicktally_element_event_tracker')) {
             wp_die(__('Insufficient permissions', 'clicktally'));
         }
         
@@ -680,14 +680,14 @@ class ClickTally_Admin {
      * AJAX handler for getting stats
      */
     public static function ajax_get_stats() {
-        // Verify nonce
+        // Verify nonce - standardized action
         $nonce = sanitize_text_field(wp_unslash($_POST['nonce'] ?? ''));
-        if (!wp_verify_nonce($nonce, 'clicktally_admin')) {
+        if (!wp_verify_nonce($nonce, 'clicktally_element_event_tracker_admin')) {
             wp_die(__('Security check failed', 'clicktally'), 403);
         }
         
-        // Check capabilities (new or old)
-        if (!current_user_can('manage_clicktally_element_event_tracker') && !current_user_can('manage_clicktally')) {
+        // Check capabilities - standardized capability
+        if (!current_user_can('manage_clicktally_element_event_tracker')) {
             wp_die(__('Insufficient permissions', 'clicktally'), 403);
         }
         
@@ -719,14 +719,14 @@ class ClickTally_Admin {
      * AJAX handler for managing events
      */
     public static function ajax_manage_rule() {
-        // Verify nonce
+        // Verify nonce - standardized action
         $nonce = sanitize_text_field(wp_unslash($_POST['nonce'] ?? ''));
-        if (!wp_verify_nonce($nonce, 'clicktally_admin')) {
+        if (!wp_verify_nonce($nonce, 'clicktally_element_event_tracker_admin')) {
             wp_die(__('Security check failed', 'clicktally'), 403);
         }
         
-        // Check capabilities (new or old)
-        if (!current_user_can('manage_clicktally_element_event_tracker') && !current_user_can('manage_clicktally')) {
+        // Check capabilities - standardized capability
+        if (!current_user_can('manage_clicktally_element_event_tracker')) {
             wp_die(__('Insufficient permissions', 'clicktally'), 403);
         }
         
@@ -738,14 +738,14 @@ class ClickTally_Admin {
      * AJAX handler for exporting data
      */
     public static function ajax_export_data() {
-        // Verify nonce
+        // Verify nonce - standardized action
         $nonce = sanitize_text_field(wp_unslash($_POST['nonce'] ?? ''));
-        if (!wp_verify_nonce($nonce, 'clicktally_admin')) {
+        if (!wp_verify_nonce($nonce, 'clicktally_element_event_tracker_admin')) {
             wp_die(__('Security check failed', 'clicktally'), 403);
         }
         
-        // Check capabilities (new or old)
-        if (!current_user_can('manage_clicktally_element_event_tracker') && !current_user_can('manage_clicktally')) {
+        // Check capabilities - standardized capability
+        if (!current_user_can('manage_clicktally_element_event_tracker')) {
             wp_die(__('Insufficient permissions', 'clicktally'), 403);
         }
         

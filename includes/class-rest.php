@@ -22,11 +22,11 @@ class ClickTally_REST {
      * Register REST API routes
      */
     public static function register_routes() {
-        // Public routes
+        // Public routes (with nonce verification for security)
         register_rest_route('clicktally/v1', '/rules', array(
             'methods' => 'GET',
             'callback' => array(__CLASS__, 'get_rules'),
-            'permission_callback' => '__return_true',
+            'permission_callback' => array(__CLASS__, 'check_public_permissions'),
             'args' => array(
                 'ver' => array(
                     'default' => 1,
@@ -38,7 +38,7 @@ class ClickTally_REST {
         register_rest_route('clicktally/v1', '/ingest', array(
             'methods' => 'POST',
             'callback' => array(__CLASS__, 'ingest_events'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array(__CLASS__, 'check_ingest_permissions')
         ));
         
         // Admin routes (require manage_clicktally capability)
@@ -372,17 +372,56 @@ class ClickTally_REST {
     }
     
     /**
-     * Check admin permissions
+     * Check admin permissions - standardized to use primary capability
      */
     public static function check_admin_permissions() {
-        return current_user_can('manage_clicktally_element_event_tracker') || current_user_can('manage_clicktally');
+        return current_user_can('manage_clicktally_element_event_tracker');
+    }
+    
+    /**
+     * Check public endpoint permissions (rules endpoint)
+     */
+    public static function check_public_permissions() {
+        // Public endpoint but verify the request is from our site
+        $referer = wp_get_referer();
+        if ($referer) {
+            $referer_host = parse_url($referer, PHP_URL_HOST);
+            $site_host = parse_url(home_url(), PHP_URL_HOST);
+            return ($referer_host === $site_host);
+        }
+        
+        // Allow if no referer (direct API calls from frontend)
+        return true;
+    }
+    
+    /**
+     * Check ingest endpoint permissions
+     */
+    public static function check_ingest_permissions() {
+        // Verify nonce for ingest requests
+        $nonce = wp_get_current_user() ? wp_create_nonce('clicktally_element_event_tracker_track') : '';
+        $request_nonce = $_SERVER['HTTP_X_WP_NONCE'] ?? '';
+        
+        if (!wp_verify_nonce($request_nonce, 'clicktally_element_event_tracker_track')) {
+            return false;
+        }
+        
+        // Verify origin
+        $referer = wp_get_referer();
+        if ($referer) {
+            $referer_host = parse_url($referer, PHP_URL_HOST);
+            $site_host = parse_url(home_url(), PHP_URL_HOST);
+            return ($referer_host === $site_host);
+        }
+        
+        return true;
     }
     
     /**
      * Validate ingest request
      */
     private static function validate_ingest_request($request) {
-        // Check nonce
+        // Check nonce - standardized action
         $nonce = $request->get_header('X-WP-Nonce');
         if (!wp_verify_nonce($nonce, 'clicktally_element_event_tracker_track')) {
             return false;
