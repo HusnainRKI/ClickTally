@@ -1,0 +1,396 @@
+/**
+ * ClickTally Admin Styles
+ */
+
+/* Dashboard */
+.clicktally-dashboard {
+    max-width: 1200px;
+}
+
+.clicktally-summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.clicktally-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.clicktally-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #646970;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.clicktally-stat-number {
+    font-size: 32px;
+    font-weight: 600;
+    color: #1d2327;
+    line-height: 1;
+}
+
+.clicktally-stat-text {
+    font-size: 16px;
+    color: #1d2327;
+}
+
+.clicktally-stat-text a {
+    text-decoration: none;
+    color: #2271b1;
+}
+
+.clicktally-stat-text small {
+    display: block;
+    color: #646970;
+    margin-top: 5px;
+}
+
+/* Filters */
+.clicktally-filters {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f6f7f7;
+    border-radius: 4px;
+}
+
+.clicktally-filters select {
+    min-width: 120px;
+}
+
+/* Sections */
+.clicktally-section {
+    margin-bottom: 40px;
+}
+
+.clicktally-section h2 {
+    margin-bottom: 15px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* Rules Page */
+.clicktally-rules-page {
+    max-width: 1200px;
+}
+
+.clicktally-rules-header {
+    margin-bottom: 20px;
+}
+
+.clicktally-rules-list table th {
+    font-weight: 600;
+}
+
+.status-active {
+    color: #00a32a;
+    font-weight: 600;
+}
+
+.status-inactive {
+    color: #d63638;
+    font-weight: 600;
+}
+
+/* Modal */
+.clicktally-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.clicktally-modal-content {
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 90%;
+    max-height: 90%;
+    overflow-y: auto;
+}
+
+.clicktally-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.clicktally-modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.clicktally-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.clicktally-modal-close:hover {
+    color: #d63638;
+}
+
+.clicktally-modal-body {
+    padding: 20px;
+}
+
+.clicktally-modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding: 20px;
+    border-top: 1px solid #ddd;
+    background: #f6f7f7;
+}
+
+/* Forms */
+.clicktally-form-row {
+    margin-bottom: 15px;
+}
+
+.clicktally-form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.clicktally-form-row input[type="text"],
+.clicktally-form-row input[type="url"],
+.clicktally-form-row input[type="number"],
+.clicktally-form-row select {
+    width: 100%;
+    max-width: 400px;
+}
+
+.clicktally-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.clicktally-input-group input {
+    flex: 1;
+}
+
+.clicktally-advanced-options {
+    margin-top: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.clicktally-advanced-options summary {
+    padding: 15px;
+    background: #f6f7f7;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.clicktally-advanced-options[open] summary {
+    border-bottom: 1px solid #ddd;
+}
+
+.clicktally-advanced-options .clicktally-form-row {
+    padding: 0 15px;
+}
+
+.clicktally-advanced-options .clicktally-form-row:last-child {
+    padding-bottom: 15px;
+}
+
+/* Test Page */
+.clicktally-test-page {
+    max-width: 1200px;
+}
+
+.clicktally-test-controls {
+    background: #f6f7f7;
+    padding: 20px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.clicktally-test-iframe-container {
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.clicktally-test-results {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+}
+
+.clicktally-test-results h3 {
+    margin-top: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .clicktally-summary-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .clicktally-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .clicktally-filters select,
+    .clicktally-filters button {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    
+    .clicktally-input-group {
+        flex-direction: column;
+    }
+    
+    .clicktally-modal-content {
+        width: 95%;
+    }
+    
+    .clicktally-modal-footer {
+        flex-direction: column;
+    }
+}
+
+/* WordPress Admin Adjustments */
+.toplevel_page_clicktally .wp-menu-image:before {
+    content: '\f185';
+}
+
+/* Table Enhancements */
+.wp-list-table.clicktally-table {
+    border: 1px solid #c3c4c7;
+}
+
+.wp-list-table.clicktally-table th {
+    background: #f6f7f7;
+    border-bottom: 1px solid #c3c4c7;
+}
+
+.wp-list-table.clicktally-table td {
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.wp-list-table.clicktally-table tr:hover td {
+    background: #f6f7f7;
+}
+
+/* Loading States */
+.clicktally-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.clicktally-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #c3c4c7;
+    border-top-color: #2271b1;
+    border-radius: 50%;
+    animation: clicktally-spin 1s linear infinite;
+}
+
+@keyframes clicktally-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Notifications */
+.clicktally-notice {
+    padding: 12px;
+    margin: 15px 0;
+    border-left: 4px solid #2271b1;
+    background: #f0f6fc;
+    border-radius: 0 4px 4px 0;
+}
+
+.clicktally-notice.error {
+    border-left-color: #d63638;
+    background: #fcf0f1;
+}
+
+.clicktally-notice.success {
+    border-left-color: #00a32a;
+    background: #f0f6fc;
+}
+
+.clicktally-notice.warning {
+    border-left-color: #dba617;
+    background: #fcf9e8;
+}
+
+/* Utility Classes */
+.clicktally-text-center {
+    text-align: center;
+}
+
+.clicktally-text-right {
+    text-align: right;
+}
+
+.clicktally-mt-0 { margin-top: 0; }
+.clicktally-mt-1 { margin-top: 10px; }
+.clicktally-mt-2 { margin-top: 20px; }
+
+.clicktally-mb-0 { margin-bottom: 0; }
+.clicktally-mb-1 { margin-bottom: 10px; }
+.clicktally-mb-2 { margin-bottom: 20px; }
+
+.clicktally-p-0 { padding: 0; }
+.clicktally-p-1 { padding: 10px; }
+.clicktally-p-2 { padding: 20px; }
+
+.clicktally-hidden {
+    display: none;
+}
+
+.clicktally-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
