@@ -123,22 +123,56 @@ class ClickTally {
      * Ensure capabilities are properly granted
      */
     private function ensure_capabilities() {
-        // Check if current user is admin and doesn't have the capability
-        if (current_user_can('manage_options') && !current_user_can('manage_clicktally_element_event_tracker')) {
-            $user = wp_get_current_user();
-            if ($user && $user->ID) {
-                // Grant capability to current admin user
-                $user->add_cap('manage_clicktally_element_event_tracker');
-                $user->add_cap('manage_clicktally'); // Backward compatibility
-            }
-        }
+        // Run silent migration for existing installations
+        $this->migrate_capabilities();
         
-        // Ensure administrator role has the capability
+        // Ensure administrator role has the primary capability
         $admin_role = get_role('administrator');
         if ($admin_role && !$admin_role->has_cap('manage_clicktally_element_event_tracker')) {
             $admin_role->add_cap('manage_clicktally_element_event_tracker');
-            $admin_role->add_cap('manage_clicktally'); // Backward compatibility
         }
+    }
+    
+    /**
+     * Silent capability migration for existing installations
+     */
+    private function migrate_capabilities() {
+        // Get migration flag
+        $migration_done = get_option('clicktally_capability_migration_done', false);
+        if ($migration_done) {
+            return; // Migration already completed
+        }
+        
+        // Migrate all users who have old capabilities to new capability
+        $users_with_old_cap = get_users(array(
+            'meta_key' => 'wp_capabilities',
+            'meta_value' => 'manage_clicktally',
+            'meta_compare' => 'LIKE'
+        ));
+        
+        foreach ($users_with_old_cap as $user) {
+            if (user_can($user, 'manage_clicktally') && !user_can($user, 'manage_clicktally_element_event_tracker')) {
+                $user->add_cap('manage_clicktally_element_event_tracker');
+            }
+        }
+        
+        // Migrate roles
+        $wp_roles = wp_roles();
+        foreach ($wp_roles->roles as $role_name => $role_info) {
+            if (isset($role_info['capabilities']['manage_clicktally']) && 
+                $role_info['capabilities']['manage_clicktally'] &&
+                (!isset($role_info['capabilities']['manage_clicktally_element_event_tracker']) ||
+                 !$role_info['capabilities']['manage_clicktally_element_event_tracker'])) {
+                
+                $role = get_role($role_name);
+                if ($role) {
+                    $role->add_cap('manage_clicktally_element_event_tracker');
+                }
+            }
+        }
+        
+        // Set migration flag
+        update_option('clicktally_capability_migration_done', true);
     }
     
     /**
@@ -148,24 +182,8 @@ class ClickTally {
         // Ensure capabilities are available
         $this->ensure_capabilities();
         
-        // Initialize new dashboard menu with long prefixes for users with new capability
+        // Use primary capability for menu access
         if (current_user_can('manage_clicktally_element_event_tracker')) {
-            Clicktally_Element_Event_Tracker_Admin_Menu::init();
-        }
-        // Keep backward compatibility for old capability (fallback)
-        elseif (current_user_can('manage_clicktally')) {
-            // If they have old capability but not new one, grant them the new one
-            $user = wp_get_current_user();
-            if ($user && $user->ID) {
-                $user->add_cap('manage_clicktally_element_event_tracker');
-            }
-            
-            // Use the new admin menu
-            Clicktally_Element_Event_Tracker_Admin_Menu::init();
-        }
-        // Fallback: If no capabilities are found, grant them to administrators
-        elseif (current_user_can('manage_options')) {
-            $this->ensure_capabilities();
             Clicktally_Element_Event_Tracker_Admin_Menu::init();
         }
     }

@@ -160,6 +160,8 @@
                 // Handle different error types
                 if (response.status === 401 || response.status === 403) {
                     throw new Error('PERMISSION_ERROR');
+                } else if (response.status === 404) {
+                    throw new Error('NOT_FOUND_ERROR');
                 } else {
                     throw new Error('NETWORK_ERROR');
                 }
@@ -175,6 +177,8 @@
             console.error('Error fetching summary data:', error);
             if (error.message === 'PERMISSION_ERROR') {
                 clicktally_element_event_tracker_show_permission_error_in_kpis();
+            } else if (error.message === 'NOT_FOUND_ERROR') {
+                clicktally_element_event_tracker_show_not_found_error_in_kpis();
             } else {
                 clicktally_element_event_tracker_show_error_in_kpis();
             }
@@ -199,6 +203,8 @@
             if (!response.ok) {
                 if (response.status === 401 || response.status === 403) {
                     throw new Error('PERMISSION_ERROR');
+                } else if (response.status === 404) {
+                    throw new Error('NOT_FOUND_ERROR');
                 } else {
                     throw new Error('NETWORK_ERROR');
                 }
@@ -213,6 +219,8 @@
             console.error('Error fetching top elements data:', error);
             if (error.message === 'PERMISSION_ERROR') {
                 clicktally_element_event_tracker_show_permission_error_in_table('top-elements-table');
+            } else if (error.message === 'NOT_FOUND_ERROR') {
+                clicktally_element_event_tracker_show_not_found_error_in_table('top-elements-table');
             } else {
                 clicktally_element_event_tracker_show_error_in_table('top-elements-table');
             }
@@ -237,6 +245,8 @@
             if (!response.ok) {
                 if (response.status === 401 || response.status === 403) {
                     throw new Error('PERMISSION_ERROR');
+                } else if (response.status === 404) {
+                    throw new Error('NOT_FOUND_ERROR');
                 } else {
                     throw new Error('NETWORK_ERROR');
                 }
@@ -251,6 +261,8 @@
             console.error('Error fetching top pages data:', error);
             if (error.message === 'PERMISSION_ERROR') {
                 clicktally_element_event_tracker_show_permission_error_in_table('top-pages-table');
+            } else if (error.message === 'NOT_FOUND_ERROR') {
+                clicktally_element_event_tracker_show_not_found_error_in_table('top-pages-table');
             } else {
                 clicktally_element_event_tracker_show_error_in_table('top-pages-table');
             }
@@ -653,9 +665,34 @@
         kpiElements.forEach(function(id) {
             const element = document.getElementById(id);
             if (element) {
-                element.innerHTML = '<span class="clicktally-permission-error">Access denied</span>';
+                element.innerHTML = '<span class="clicktally-permission-error">' + 
+                    ClickTallyElementEventTrackerAdminConfig.i18n.accessDenied + '</span>';
             }
         });
+    }
+    
+    /**
+     * Show 404 error in KPI cards
+     */
+    function clicktally_element_event_tracker_show_not_found_error_in_kpis() {
+        const kpiElements = ['total-clicks', 'unique-elements', 'top-page', 'events-today'];
+        kpiElements.forEach(function(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.innerHTML = '<span class="clicktally-error">REST endpoint not found. Try flushing permalinks.</span>';
+            }
+        });
+    }
+    
+    /**
+     * Show 404 error in table
+     */
+    function clicktally_element_event_tracker_show_not_found_error_in_table(tableId) {
+        const container = document.getElementById(tableId);
+        if (container) {
+            container.classList.remove('loading');
+            container.innerHTML = '<div class="clicktally-error">REST endpoint not found. Go to Settings → Permalinks and click "Save Changes" to flush rewrite rules.</div>';
+        }
     }
     
     /**
